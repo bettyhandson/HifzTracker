@@ -30,7 +30,7 @@ export default function Donate({ userId }: { userId?: string }) {
 
   const handlePaystack = (amount: number) => {
     if (!amount || amount <= 0) {
-      alert("Please enter a valid amount to continue.");
+      alert("Please enter a valid amount t continue.");
       return;
     }
 
