@@ -5,6 +5,7 @@ import StatCards from "@/components/dashboard/StatCards";
 import LogProgressForm from "@/components/dashboard/LogProgressForm";
 import ReadingHistory from "@/components/dashboard/ReadingHistory";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap";
+import IslamicCalendar from "@/components/dashboard/IslamicCalendar";
 
 
 export default async function DashboardPage() {
@@ -34,6 +35,18 @@ export default async function DashboardPage() {
             Track your journey. Your consistency today is your reward for eternity.
           </p>
         </header>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 🌙 Main Calendar Section */}
+      <div className="lg:col-span-2 space-y-6">
+        <IslamicCalendar />
+        {/* Your current Hifz stats/charts go here */}
+      </div>
+
+      {/* 📊 Sidebar Widget (Stats or Donations) */}
+      <div className="space-y-6">
+        {/* Your Donation Progress Bar Widget */}
+      </div>
+    </div>
        {/* 3. Quick Tips/Hadith Card (Maintains Brand Consistency) */}
           <div className="bg-emerald-600 rounded-2xl p-6 text-white shadow-lg flex flex-col justify-between">
             <div>
