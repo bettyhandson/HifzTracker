@@ -28,31 +28,46 @@ export default function IslamicCalendar() {
     adhanAudio.current = new Audio('https://www.islamcan.com/audio/adhan/azan1.mp3');
   }, []);
 
+  // 2. Persistent Toggle Logic (On/Off)
   const enableNotifications = async () => {
-    const hasNotificationSupport = typeof window !== 'undefined' && 'Notification' in window;
-    
-    if (!hasNotificationSupport) {
-      alert("Please ensure you have opened this app from your Home Screen, not inside Safari.");
+    // Bracket notation for iOS safety
+    const NotificationAPI = typeof window !== "undefined" ? (window as any)["Notification"] : null;
+
+    if (!NotificationAPI) {
+      alert("Adhan alerts on iPhone require the app to be installed. Please use 'Add to Home Screen' first.");
       return;
     }
 
-    // 🚀 Debug: Check current status
-    console.log("Current Permission:", Notification.permission);
-
-    if (Notification.permission === "denied") {
-      alert("iOS has blocked notifications. You must delete the app from your Home Screen and re-add it to reset permissions.");
-      return;
+    // 🚀 NEW: If it's already ON, turn it OFF
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      localStorage.setItem('adhan_enabled', 'false');
+      
+      // Stop any currently playing Adhan
+      if (adhanAudio.current) {
+        adhanAudio.current.pause();
+        adhanAudio.current.currentTime = 0;
+      }
+      return; // Exit early since we just turned it off
     }
 
+    // 🚀 EXISTING: Logic to turn it ON
     try {
-      const permission = await Notification.requestPermission();
+      const permission = await NotificationAPI.requestPermission();
       if (permission === "granted") {
         setNotificationsEnabled(true);
         localStorage.setItem('adhan_enabled', 'true');
-        // ... rest of your audio logic
+
+        if (adhanAudio.current) {
+          // Unlock browser audio context
+          adhanAudio.current.play().then(() => {
+            adhanAudio.current?.pause();
+            adhanAudio.current!.currentTime = 0;
+          }).catch((e) => console.warn("Audio unlock failed:", e));
+        }
       }
     } catch (error) {
-      alert("System error requesting permission. Please check if you are using HTTPS.");
+      console.error("Notification toggle error:", error);
     }
   };
   
