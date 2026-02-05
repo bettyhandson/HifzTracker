@@ -4,30 +4,33 @@ import "./globals.css";
 import { AudioProvider } from '@/context/AudioContext';
 import MiniPlayer from '@/components/dashboard/MiniPlayer';
 import InstallBanner from '@/components/ui/InstallBanner';
-import InstallPrompt from "@/components/InstallPrompt";
-
+import InstallPrompt from "@/components/InstallPrompt"; // 🚀 The new component
 
 const inter = Inter({ subsets: ["latin"] });
 
 // 🚀 Professional Metadata for PWA & SEO
 export const metadata: Metadata = {
-  title: "Hifz Tracker | Earn Eternity Rewards",
+  title: "HifzTracker | Earn Eternity Rewards",
   description: "Track your Quran journey and stay consistent during Ramadan.",
-  manifest: "/manifest.json", // 🔗 Connects to your manifest file
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Hifz Tracker",
+    statusBarStyle: "black-translucent", // 🚀 Blends with the dark theme
+    title: "HifzTracker",
+  },
+  icons: {
+    apple: "/icons/icon-192.png", // Ensure this path matches your public folder
   },
 };
 
-// 🚀 Ensures the app colors match your brand on mobile bars
+// 🚀 Viewport Settings
 export const viewport: Viewport = {
-  themeColor: "#10b981",
+  // 🎨 Changed to Navy (#020617) so the status bar blends with your app background
+  themeColor: "#020617", 
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false,
+  userScalable: false, // 🚀 Prevents zooming on inputs (App-like feel)
 };
 
 export default function RootLayout({
@@ -37,19 +40,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Manual Fallbacks for older browsers */}
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-[#020617] text-white`}>
         <AudioProvider>
+          {/* Top Banner (Optional - you can keep or remove if using the new slide-up prompt) */}
           <InstallBanner /> 
+          
           {children}
+          
+          {/* Global Audio Player */}
           <MiniPlayer /> 
         </AudioProvider>
-        <InstallPrompt /> {/* 🚀 Add this line at the bottom */}
+        
+        {/* 🚀 The iOS Slide-Up Guide */}
+        <InstallPrompt /> 
       </body>
     </html>
   );
