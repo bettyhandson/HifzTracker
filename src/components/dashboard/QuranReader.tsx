@@ -17,6 +17,32 @@ export default function QuranReader({ userId }: { userId: string }) {
   const [preferredReciter, setPreferredReciter] = useState('ar.alafasy'); 
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // 🚀 iOS PWA UNLOCK: Master handler to resume audio context
+  const handleMasterPlay = async (index?: number) => {
+    // Resume AudioContext if it exists in the window
+    if (typeof window !== 'undefined' && (window as any).AudioContext || (window as any).webkitAudioContext) {
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+    }
+
+    // Trigger existing audio logic
+    if (index !== undefined) {
+      // If clicking a specific ayah
+      playAyah(index, ayahs, preferredReciter);
+    } else {
+      // If clicking the main play/pause button
+      if (isPlaying) {
+        toggleAudio();
+      } else {
+        // Play from active index or start from zero
+        playAyah(activeAyahIndex ?? 0, ayahs, preferredReciter);
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       const { data } = await supabase.from('profiles').select('preferred_reciter').eq('id', userId).single();
@@ -30,13 +56,27 @@ export default function QuranReader({ userId }: { userId: string }) {
   }, []);
 
   useEffect(() => {
+    const cacheKey = `surah_${selectedSurah}`;
+    const cachedData = localStorage.getItem(cacheKey);
+
     setLoading(true);
     fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}/editions/quran-uthmani,en.sahih`)
       .then(res => res.json())
       .then(data => {
         if (data.data?.[0]) {
-          const verses = data.data[0].ayahs.map((v: any, i: number) => ({ ...v, translation: data.data[1].ayahs[i].text, surah: selectedSurah }));
+          const verses = data.data[0].ayahs.map((v: any, i: number) => ({ 
+            ...v, 
+            translation: data.data[1].ayahs[i].text, 
+            surah: selectedSurah 
+          }));
           setAyahs(verses);
+          localStorage.setItem(cacheKey, JSON.stringify(verses));
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cachedData) {
+          setAyahs(JSON.parse(cachedData));
         }
         setLoading(false);
       });
@@ -48,45 +88,19 @@ export default function QuranReader({ userId }: { userId: string }) {
     }
   }, [activeAyahIndex, isPlaying, selectedSurah, playlist]);
 
-  // Inside your QuranReader Component...
-useEffect(() => {
-  const cacheKey = `surah_${selectedSurah}`;
-  const cachedData = localStorage.getItem(cacheKey);
-
-  setLoading(true);
-
-  // 🚀 Logic: Try to fetch fresh data, but fallback to cache if offline
-  fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}/editions/quran-uthmani,en.sahih`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.data?.[0]) {
-        const verses = data.data[0].ayahs.map((v: any, i: number) => ({ 
-          ...v, 
-          translation: data.data[1].ayahs[i].text, 
-          surah: selectedSurah 
-        }));
-        setAyahs(verses);
-        localStorage.setItem(cacheKey, JSON.stringify(verses)); // Save for offline use
-      }
-      setLoading(false);
-    })
-    .catch(() => {
-      // 🚀 Offline fallback
-      if (cachedData) {
-        setAyahs(JSON.parse(cachedData));
-        console.log("Loaded Surah from offline cache");
-      }
-      setLoading(false);
-    });
-}, [selectedSurah]);
-
   return (
     <Card className="bg-[#0a0a0a] border-white/5 overflow-hidden flex flex-col h-[75vh] md:h-[85vh]">
       <div className="p-4 md:p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Button onClick={() => isPlaying ? toggleAudio() : playAyah(activeAyahIndex, ayahs, preferredReciter)} variant="ghost" className={`rounded-full w-10 h-10 p-0 ${isPlaying ? 'bg-emerald-500 text-slate-950' : 'bg-emerald-500/10 text-emerald-500'}`}>
+          {/* 🚀 Main Play Button: Now uses handleMasterPlay */}
+          <Button 
+            onClick={() => handleMasterPlay()} 
+            variant="ghost" 
+            className={`rounded-full w-10 h-10 p-0 ${isPlaying ? 'bg-emerald-500 text-slate-950' : 'bg-emerald-500/10 text-emerald-500'}`}
+          >
             {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
+
           <Button variant="ghost" onClick={() => setLooping(!isLooping)} className={`rounded-lg h-10 w-10 ${isLooping ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500'}`}><Repeat className="h-5 w-5" /></Button>
           <div className="relative group flex items-center h-10 w-10 justify-center">
              <Gauge className="h-5 w-5 text-slate-500" />
@@ -104,7 +118,13 @@ useEffect(() => {
         {loading ? ( <div className="flex flex-col items-center justify-center h-full"><Loader2 className="h-8 w-8 text-emerald-500 animate-spin" /></div> ) : (
           <div className="max-w-4xl mx-auto space-y-16 pb-32">
             {ayahs.map((ayah, index) => (
-              <div key={ayah.number} ref={el => { ayahRefs.current[index] = el; }} className={`text-right p-6 rounded-3xl transition-all ${activeAyahIndex === index ? 'bg-emerald-500/[0.04] ring-1 ring-emerald-500/20' : ''}`} onClick={() => playAyah(index, ayahs, preferredReciter)}>
+              <div 
+                key={ayah.number} 
+                ref={el => { ayahRefs.current[index] = el; }} 
+                className={`text-right p-6 rounded-3xl transition-all cursor-pointer ${activeAyahIndex === index ? 'bg-emerald-500/[0.04] ring-1 ring-emerald-500/20' : ''}`} 
+        
+                onClick={() => handleMasterPlay(index)}
+              >
                 <p className={`text-3xl md:text-5xl leading-relaxed font-arabic ${activeAyahIndex === index ? 'text-emerald-400' : 'text-white/90'}`} dir="rtl">
                   {ayah.text} <span className="inline-flex items-center justify-center w-10 h-10 border rounded-full text-sm mr-4">{ayah.numberInSurah}</span>
                 </p>

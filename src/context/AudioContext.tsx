@@ -29,10 +29,20 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [reciter, setReciter] = useState('ar.alafasy');
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isLooping, setIsLooping] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // 1. Ref to hold the Web Audio Context for unlocking iOS/PWA audio
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     audioRef.current = new Audio();
+    
+    // Initialize AudioContext lazily (but it stays suspended until resumed)
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      audioContextRef.current = new AudioCtx();
+    }
+
     const handleEnded = () => {
       if (isLooping) {
         audioRef.current!.currentTime = 0;
@@ -45,6 +55,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     return () => audioRef.current?.removeEventListener('ended', handleEnded);
   }, [isLooping]);
 
+  // 2. The Unlock Helper Logic
+  const ensureAudioUnlocked = async () => {
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
+  };
+
   useEffect(() => {
     const handleGlobalNext = () => {
       setActiveAyahIndex((prev) => {
@@ -52,6 +69,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           const nextIndex = prev + 1;
           if (audioRef.current) {
             audioRef.current.src = `https://cdn.islamic.network/quran/audio/64/${reciter}/${playlist[nextIndex].number}.mp3`;
+            // Note: Global transitions don't need resume() because the 
+            // session was already unlocked by the initial user click.
             audioRef.current.play().catch(() => {});
           }
           return nextIndex;
@@ -64,30 +83,49 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('ayah-ended-globally', handleGlobalNext);
   }, [playlist, reciter]);
 
- // Inside your playAyah function in AudioProvider
-const playAyah = (index: number, ayahs: Track[], reciterName: string) => {
-  if (!audioRef.current) return;
-  setPlaylist(ayahs);
-  setActiveAyahIndex(index);
-  setReciter(reciterName);
-  
-  audioRef.current.pause();
-  const audioUrl = `https://cdn.islamic.network/quran/audio/64/${reciterName}/${ayahs[index].number}.mp3`;
-  
-  audioRef.current.src = audioUrl;
-  audioRef.current.load(); // Pre-load the file
-  audioRef.current.playbackRate = playbackRate;
-  
-  audioRef.current.play().catch((e) => {
-    console.warn("Audio failed to play. You might be offline.", e);
-  });
-  setIsPlaying(true);
-};
-  
-  const toggleAudio = () => {
+  const playAyah = async (index: number, ayahs: Track[], reciterName: string) => {
+    if (!audioRef.current) return;
+
+    // 🚀 Unlock Audio for iOS/PWAs
+    await ensureAudioUnlocked();
+
+    setPlaylist(ayahs);
+    setActiveAyahIndex(index);
+    setReciter(reciterName);
+    
+    audioRef.current.pause();
+    const audioUrl = `https://cdn.islamic.network/quran/audio/64/${reciterName}/${ayahs[index].number}.mp3`;
+    
+    audioRef.current.src = audioUrl;
+    audioRef.current.load();
+    audioRef.current.playbackRate = playbackRate;
+    
+    try {
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch (e) {
+      console.warn("Audio failed to play. You might be offline or interaction was blocked.", e);
+      setIsPlaying(false);
+    }
+  };
+
+  const toggleAudio = async () => {
     if (!audioRef.current?.src) return;
-    isPlaying ? audioRef.current.pause() : audioRef.current.play().catch(() => {});
-    setIsPlaying(!isPlaying);
+
+    // 🚀 Unlock Audio for iOS/PWAs
+    await ensureAudioUnlocked();
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (e) {
+        console.error("Playback failed", e);
+      }
+    }
   };
 
   return (
