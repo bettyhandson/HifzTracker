@@ -7,6 +7,7 @@ import InstallBanner from '@/components/ui/InstallBanner';
 import { Toaster } from 'sonner';
 import InstallPrompt from "@/components/InstallPrompt"; // 🚀 The new component
 import RefreshHandler from '@/components/RefreshHandler'; // 🚀 Handles pull-to-refresh on mobile
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -57,7 +58,10 @@ export default function RootLayout({
         </AudioProvider>
         
         {/* 🚀 The iOS Slide-Up Guide */}
-        <InstallPrompt /> 
+        <InstallPrompt />
+        
+        {/* Vercel Speed Insights */}
+        <SpeedInsights />
       </body>
     </html>
   );
