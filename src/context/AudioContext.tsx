@@ -7,11 +7,11 @@ interface AudioContextType {
   activeAyahIndex: number | null;
   playlist: any[];
   playbackRate: number;
-  isLooping: boolean;
-  setRate: (rate: number) => void;
-  setLooping: (loop: boolean) => void;
+  repeatCount: number;
+  setRepeatCount: (count: number) => void;
   playAyah: (index: number, ayahs: any[], reciter: string) => void;
   toggleAudio: () => void;
+  setRate: (rate: number) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -21,64 +21,56 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeAyahIndex, setActiveAyahIndex] = useState<number | null>(null);
   const [playlist, setPlaylist] = useState<any[]>([]);
   const [playbackRate, setRate] = useState(1);
-  const [isLooping, setLooping] = useState(false);
-  
+  const [repeatCount, setRepeatCount] = useState(0); 
+  const currentRepeatRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const audio = new Audio();
       audio.preload = "auto";
-      // 🚀 Required for iOS PWA Background/Standalone playback
-      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('playsinline', 'true'); // Required for iOS PWA
       audioRef.current = audio;
     }
   }, []);
 
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.playbackRate = playbackRate;
-  }, [playbackRate]);
-
   const playAyah = async (index: number, ayahs: any[], reciter: string) => {
-    if (!audioRef.current) return;
-
-    // 🚀 STEP 1: iOS Hardware Kick (Sync)
-    // Claim the audio channel immediately before the URL load
-    audioRef.current.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-    try { await audioRef.current.play(); } catch (e) { /* silent fail ok */ }
+    if (!audioRef.current || !ayahs[index]) return;
 
     const ayah = ayahs[index];
-    // High-quality bitrate often performs better on stable PWA installs
     const audioUrl = `https://cdn.islamic.network/quran/audio/64/${reciter}/${ayah.number}.mp3`;
 
-    // 🚀 STEP 2: Load real source
-    audioRef.current.pause();
-    audioRef.current.src = audioUrl;
-    audioRef.current.load();
-    
-    setActiveAyahIndex(index);
-    setPlaylist(ayahs);
+    audioRef.current.onended = null;
 
     try {
-      await audioRef.current.play();
-      setIsPlaying(true);
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error("Playback failed:", err);
-        setIsPlaying(false);
-      }
-    }
+      audioRef.current.pause();
+      audioRef.current.src = audioUrl;
+      audioRef.current.load();
+      audioRef.current.playbackRate = playbackRate;
+      
+      setPlaylist(ayahs);
+      setActiveAyahIndex(index);
 
-    audioRef.current.onended = () => {
-      if (isLooping) {
-        audioRef.current?.play();
-      } else if (index < ayahs.length - 1) {
-        playAyah(index + 1, ayahs, reciter);
-      } else {
-        setIsPlaying(false);
-        setActiveAyahIndex(null);
-      }
-    };
+      await audioRef.current.play(); // 🚀 Critical for iOS
+      setIsPlaying(true);
+
+      audioRef.current.onended = () => {
+        if (currentRepeatRef.current < repeatCount) {
+          currentRepeatRef.current += 1;
+          audioRef.current?.play();
+        } else {
+          currentRepeatRef.current = 0;
+          if (index < ayahs.length - 1) {
+            playAyah(index + 1, ayahs, reciter); // 🚀 Automatic transition
+          } else {
+            setIsPlaying(false);
+            setActiveAyahIndex(null);
+          }
+        }
+      };
+    } catch (err: any) {
+      if (err.name !== 'AbortError') setIsPlaying(false);
+    }
   };
 
   const toggleAudio = () => {
@@ -94,8 +86,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AudioContext.Provider value={{ 
-      isPlaying, activeAyahIndex, playlist, playbackRate, isLooping, 
-      setRate, setLooping, playAyah, toggleAudio 
+      isPlaying, activeAyahIndex, playlist, playbackRate, repeatCount,
+      setRepeatCount, playAyah, toggleAudio, setRate 
     }}>
       {children}
     </AudioContext.Provider>

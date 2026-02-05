@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import DashboardShell from "@/components/dashboard/DashboardShell";
 import QuranReader from "@/components/dashboard/QuranReader";
-import AdhkarPlayer from "@/components/dashboard/AdhkarPlayer";
 import { BookOpen, Loader2 } from "lucide-react";
 
 export default function RecitePage() {
@@ -27,7 +25,6 @@ export default function RecitePage() {
   );
 
   return (
-    <DashboardShell>
       <div className="flex flex-col xl:grid xl:grid-cols-4 gap-6">
         <div className="xl:col-span-3 space-y-6">
           <div className="px-1">
@@ -43,12 +40,8 @@ export default function RecitePage() {
               "Recite the Surah once from the Mushaf, then once from memory."
             </p>
           </div>
-          <QuranReader userId={userId!} />
-        </div>
-        <div className="space-y-6">
-          <AdhkarPlayer />
-        </div>
-      </div>
-    </DashboardShell>
+          <QuranReader userId={userId || 'guest'} />
+          </div>
+          </div>
   );
 }

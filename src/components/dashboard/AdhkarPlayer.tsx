@@ -1,93 +1,84 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Card } from "@/components/ui/card";
-import { Play, Pause, Music, Volume2 } from "lucide-react";
+import { Play, Pause, Music, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAudio } from '@/context/AudioContext';
+import { toast } from "sonner";
 
-const adhkar = [
-  { 
-    id: 1, 
-    title: "Morning Adhkar", 
-    duration: "21:05", 
-    // FIXED: Remove '/public' from the path. Next.js serves this from the root.
-    url: "/MakkahLive.Net.mp3" 
-  },
-  { 
-    id: 2, 
-    title: "Evening Adhkar", 
-    duration: "20:57", 
-    url: "/MakkahLive.Net_athkar_04.mp3" 
-  },
-  { 
-    id: 3, 
-    title: "Dua for Hifz", 
-    duration: "08:54", 
-    url: "/Ep. 3： The Best Du'as for Them ｜ For Those Left Behind by Dr. Omar Suleiman.mp3" 
-  },
+// Define your local Adhkar files here
+const ADHKAR_DATA = [
+  { id: 'morning', title: 'Morning Adhkar', duration: '21:05', file: '/audio/morning.mp3' },
+  { id: 'evening', title: 'Evening Adhkar', duration: '20:57', file: '/audio/evening.mp3' },
+  { id: 'hifz-dua', title: 'Dua for Hifz', duration: '08:54', file: '/audio/hifz-dua.mp3' },
 ];
 
-
 export default function AdhkarPlayer() {
-  const [playingId, setPlayingId] = useState<number | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { isPlaying, toggleAudio, playAyah, activeAyahIndex } = useAudio();
+  const [currentFile, setCurrentFile] = useState<string | null>(null);
 
-  const togglePlay = (item: typeof adhkar[0]) => {
-    if (!audioRef.current) return;
-
-    if (playingId === item.id) {
-      audioRef.current.pause();
-      setPlayingId(null);
-    } else {
-      // If we are switching tracks, update the source
-      if (audioRef.current.src !== window.location.origin + item.url) {
-        audioRef.current.src = item.url;
+  // 🚀 iOS PWA UNLOCK: Hardware wake-up for local files
+  const handleAdhkarPlay = async (file: string) => {
+    try {
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const tempCtx = new AudioContextClass();
+        if (tempCtx.state === 'suspended') await tempCtx.resume();
       }
-      
-      audioRef.current.play().catch(err => {
-        console.error("Audio play failed. Check if the file exists in /public:", err);
-      });
-      setPlayingId(item.id);
+    } catch (e) {
+      console.warn("Hardware busy");
+    }
+
+    // Since playAyah is built for Quran API, we pass a custom "ayah-like" object 
+    // or we can trigger the global toggle if the file is already loaded.
+    if (currentFile === file && isPlaying) {
+      toggleAudio();
+    } else {
+      setCurrentFile(file);
+      // We pass the local file to the global player logic
+      // Note: Ensure your AudioContext.tsx playAyah logic handles local strings!
+      playAyah(0, [{ number: 0, text: '', file: file }], 'local'); 
+      toast.success(`Starting ${file.replace('/audio/', '').replace('.mp3', '')}`);
     }
   };
 
   return (
-    <Card className="bg-[#0a0a0a] border-white/5 p-6 shadow-2xl">
-      <audio ref={audioRef} onEnded={() => setPlayingId(null)} preload="auto" />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Headphones className="h-5 w-5 text-emerald-500" />
+        <h3 className="text-lg font-bold text-white">Adhkar & Duas</h3>
+      </div>
       
-      <h3 className="text-emerald-500 font-bold flex items-center gap-2 mb-6">
-        <Volume2 className="h-5 w-5" /> Adhkar & Duas
-      </h3>
-      
-      <div className="space-y-4">
-        {adhkar.map((item) => (
-          <div key={item.id} className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 border ${
-            playingId === item.id ? 'bg-emerald-500/10 border-emerald-500/30 shadow-lg' : 'bg-white/5 border-transparent hover:border-white/10'
-          }`}>
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl transition-colors ${playingId === item.id ? 'bg-emerald-500 text-slate-950' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                <Music className="h-5 w-5" />
+      <div className="grid grid-cols-1 gap-3">
+        {ADHKAR_DATA.map((adhkar) => (
+          <Card 
+            key={adhkar.id} 
+            className={`p-4 bg-white/[0.03] border-white/5 hover:bg-white/[0.06] transition-all cursor-pointer ${currentFile === adhkar.file && isPlaying ? 'ring-1 ring-emerald-500/30 bg-emerald-500/[0.02]' : ''}`}
+            onClick={() => handleAdhkarPlay(adhkar.file)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${currentFile === adhkar.file && isPlaying ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 text-slate-400'}`}>
+                  <Music className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">{adhkar.title}</h4>
+                  <p className="text-xs text-slate-500">{adhkar.duration}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-black text-white">{item.title}</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{item.duration}</p>
-              </div>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={`rounded-full ${currentFile === adhkar.file && isPlaying ? 'text-emerald-500' : 'text-slate-400'}`}
+              >
+                {currentFile === adhkar.file && isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              </Button>
             </div>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className={`rounded-full transition-all ${
-                playingId === item.id 
-                ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' 
-                : 'bg-white/5 text-slate-400 hover:text-emerald-500'
-              }`}
-              onClick={() => togglePlay(item)}
-            >
-              {playingId === item.id ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </Button>
-          </div>
+          </Card>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }
