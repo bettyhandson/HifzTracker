@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Loader2, Play, Pause, Languages, Repeat, Gauge } from "lucide-react";
+import { Loader2, Play, Pause, Languages, Repeat, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAudio } from '@/context/AudioContext';
 
@@ -17,28 +17,26 @@ export default function QuranReader({ userId }: { userId: string }) {
   const [preferredReciter, setPreferredReciter] = useState('ar.alafasy'); 
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // 🚀 iOS PWA UNLOCK: Master handler to resume audio context
+  // 🚀 iOS PWA UNLOCK: Synchronous hardware wake-up
   const handleMasterPlay = async (index?: number) => {
-    // Resume AudioContext if it exists in the window
-    if (typeof window !== 'undefined' && (window as any).AudioContext || (window as any).webkitAudioContext) {
-      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx();
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
+    try {
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const tempCtx = new AudioContextClass();
+        if (tempCtx.state === 'suspended') await tempCtx.resume();
       }
+    } catch (e) {
+      console.warn("Audio hardware busy");
     }
 
-    // Trigger existing audio logic
     if (index !== undefined) {
-      // If clicking a specific ayah
       playAyah(index, ayahs, preferredReciter);
     } else {
-      // If clicking the main play/pause button
       if (isPlaying) {
         toggleAudio();
       } else {
-        // Play from active index or start from zero
-        playAyah(activeAyahIndex ?? 0, ayahs, preferredReciter);
+        const target = activeAyahIndex !== null ? activeAyahIndex : 0;
+        playAyah(target, ayahs, preferredReciter);
       }
     }
   };
@@ -65,9 +63,7 @@ export default function QuranReader({ userId }: { userId: string }) {
       .then(data => {
         if (data.data?.[0]) {
           const verses = data.data[0].ayahs.map((v: any, i: number) => ({ 
-            ...v, 
-            translation: data.data[1].ayahs[i].text, 
-            surah: selectedSurah 
+            ...v, translation: data.data[1].ayahs[i].text, surah: selectedSurah 
           }));
           setAyahs(verses);
           localStorage.setItem(cacheKey, JSON.stringify(verses));
@@ -75,24 +71,21 @@ export default function QuranReader({ userId }: { userId: string }) {
         setLoading(false);
       })
       .catch(() => {
-        if (cachedData) {
-          setAyahs(JSON.parse(cachedData));
-        }
+        if (cachedData) setAyahs(JSON.parse(cachedData));
         setLoading(false);
       });
   }, [selectedSurah]);
 
-  useEffect(() => {
-    if (isPlaying && playlist[0]?.surah === selectedSurah) {
-      ayahRefs.current[activeAyahIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [activeAyahIndex, isPlaying, selectedSurah, playlist]);
-
+ useEffect(() => {
+  // 🚀 Add 'typeof activeAyahIndex === "number"' to satisfy TypeScript
+  if (isPlaying && playlist[0]?.surah === selectedSurah && typeof activeAyahIndex === 'number') {
+    ayahRefs.current[activeAyahIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}, [activeAyahIndex, isPlaying, selectedSurah, playlist]);
   return (
     <Card className="bg-[#0a0a0a] border-white/5 overflow-hidden flex flex-col h-[75vh] md:h-[85vh]">
       <div className="p-4 md:p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* 🚀 Main Play Button: Now uses handleMasterPlay */}
           <Button 
             onClick={() => handleMasterPlay()} 
             variant="ghost" 
@@ -122,7 +115,6 @@ export default function QuranReader({ userId }: { userId: string }) {
                 key={ayah.number} 
                 ref={el => { ayahRefs.current[index] = el; }} 
                 className={`text-right p-6 rounded-3xl transition-all cursor-pointer ${activeAyahIndex === index ? 'bg-emerald-500/[0.04] ring-1 ring-emerald-500/20' : ''}`} 
-        
                 onClick={() => handleMasterPlay(index)}
               >
                 <p className={`text-3xl md:text-5xl leading-relaxed font-arabic ${activeAyahIndex === index ? 'text-emerald-400' : 'text-white/90'}`} dir="rtl">

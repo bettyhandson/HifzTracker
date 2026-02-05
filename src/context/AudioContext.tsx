@@ -2,142 +2,99 @@
 
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 
-interface Track {
-  surah: number;
-  ayah: number;
-  number: number;
-}
-
 interface AudioContextType {
   isPlaying: boolean;
-  activeAyahIndex: number;
-  playlist: Track[];
-  toggleAudio: () => void;
-  playAyah: (index: number, ayahs: Track[], reciter: string) => void;
+  activeAyahIndex: number | null;
+  playlist: any[];
   playbackRate: number;
-  setRate: (rate: number) => void;
   isLooping: boolean;
-  setLooping: (val: boolean) => void;
+  setRate: (rate: number) => void;
+  setLooping: (loop: boolean) => void;
+  playAyah: (index: number, ayahs: any[], reciter: string) => void;
+  toggleAudio: () => void;
 }
 
-const AudioContext = createContext<AudioContextType | null>(null);
+const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-export function AudioProvider({ children }: { children: React.ReactNode }) {
+export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playlist, setPlaylist] = useState<Track[]>([]);
-  const [activeAyahIndex, setActiveAyahIndex] = useState(0);
-  const [reciter, setReciter] = useState('ar.alafasy');
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [isLooping, setIsLooping] = useState(false);
-
+  const [activeAyahIndex, setActiveAyahIndex] = useState<number | null>(null);
+  const [playlist, setPlaylist] = useState<any[]>([]);
+  const [playbackRate, setRate] = useState(1);
+  const [isLooping, setLooping] = useState(false);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  // 1. Ref to hold the Web Audio Context for unlocking iOS/PWA audio
-  const audioContextRef = useRef<AudioContext | null>(null);
 
+  // Initialize Audio Element once
   useEffect(() => {
-    audioRef.current = new Audio();
-    
-    // Initialize AudioContext lazily (but it stays suspended until resumed)
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (AudioCtx) {
-      audioContextRef.current = new AudioCtx();
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio();
+      audioRef.current.preload = "auto";
     }
+  }, []);
 
-    const handleEnded = () => {
-      if (isLooping) {
-        audioRef.current!.currentTime = 0;
-        audioRef.current!.play().catch(() => {});
-      } else {
-        window.dispatchEvent(new CustomEvent('ayah-ended-globally'));
-      }
-    };
-    audioRef.current.addEventListener('ended', handleEnded);
-    return () => audioRef.current?.removeEventListener('ended', handleEnded);
-  }, [isLooping]);
-
-  // 2. The Unlock Helper Logic
-  const ensureAudioUnlocked = async () => {
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-      await audioContextRef.current.resume();
-    }
-  };
-
+  // Update playback rate whenever it changes
   useEffect(() => {
-    const handleGlobalNext = () => {
-      setActiveAyahIndex((prev) => {
-        if (prev < playlist.length - 1) {
-          const nextIndex = prev + 1;
-          if (audioRef.current) {
-            audioRef.current.src = `https://cdn.islamic.network/quran/audio/64/${reciter}/${playlist[nextIndex].number}.mp3`;
-            // Note: Global transitions don't need resume() because the 
-            // session was already unlocked by the initial user click.
-            audioRef.current.play().catch(() => {});
-          }
-          return nextIndex;
-        }
-        setIsPlaying(false);
-        return prev;
-      });
-    };
-    window.addEventListener('ayah-ended-globally', handleGlobalNext);
-    return () => window.removeEventListener('ayah-ended-globally', handleGlobalNext);
-  }, [playlist, reciter]);
+    if (audioRef.current) audioRef.current.playbackRate = playbackRate;
+  }, [playbackRate]);
 
-  const playAyah = async (index: number, ayahs: Track[], reciterName: string) => {
+  const playAyah = async (index: number, ayahs: any[], reciter: string) => {
     if (!audioRef.current) return;
 
-    // 🚀 Unlock Audio for iOS/PWAs
-    await ensureAudioUnlocked();
+    const ayah = ayahs[index];
+    const audioUrl = `https://cdn.islamic.network/quran/audio/64/${reciter}/${ayah.number}.mp3`;
 
-    setPlaylist(ayahs);
-    setActiveAyahIndex(index);
-    setReciter(reciterName);
-    
+    // 🚀 Force iOS to recognize a new source load
     audioRef.current.pause();
-    const audioUrl = `https://cdn.islamic.network/quran/audio/64/${reciterName}/${ayahs[index].number}.mp3`;
-    
     audioRef.current.src = audioUrl;
     audioRef.current.load();
-    audioRef.current.playbackRate = playbackRate;
     
+    setActiveAyahIndex(index);
+    setPlaylist(ayahs);
+
     try {
-      await audioRef.current.play();
+      await audioRef.current.play(); // 🚀 Await is required for iOS
       setIsPlaying(true);
-    } catch (e) {
-      console.warn("Audio failed to play. You might be offline or interaction was blocked.", e);
-      setIsPlaying(false);
+    } catch (err) {
+      console.error("Playback failed, retrying...", err);
+      // Fallback: iOS sometimes requires a direct play call after a user gesture
+      audioRef.current.play();
+      setIsPlaying(true);
     }
+
+    // Handle Auto-Play next Ayah
+    audioRef.current.onended = () => {
+      if (isLooping) {
+        audioRef.current?.play();
+      } else if (index < ayahs.length - 1) {
+        playAyah(index + 1, ayahs, reciter);
+      } else {
+        setIsPlaying(false);
+        setActiveAyahIndex(null);
+      }
+    };
   };
 
-  const toggleAudio = async () => {
-    if (!audioRef.current?.src) return;
-
-    // 🚀 Unlock Audio for iOS/PWAs
-    await ensureAudioUnlocked();
-
+  const toggleAudio = () => {
+    if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      try {
-        await audioRef.current.play();
-        setIsPlaying(true);
-      } catch (e) {
-        console.error("Playback failed", e);
-      }
+      audioRef.current.play();
+      setIsPlaying(true);
     }
   };
 
   return (
     <AudioContext.Provider value={{ 
-      isPlaying, activeAyahIndex, playlist, toggleAudio, playAyah, 
-      playbackRate, setRate: (r) => { setPlaybackRate(r); if(audioRef.current) audioRef.current.playbackRate = r; }, 
-      isLooping, setLooping: setIsLooping 
+      isPlaying, activeAyahIndex, playlist, playbackRate, isLooping, 
+      setRate, setLooping, playAyah, toggleAudio 
     }}>
       {children}
     </AudioContext.Provider>
   );
-}
+};
 
 export const useAudio = () => {
   const context = useContext(AudioContext);
