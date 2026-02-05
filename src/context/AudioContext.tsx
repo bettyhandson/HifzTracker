@@ -25,15 +25,16 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize Audio Element once
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      audioRef.current = new Audio();
-      audioRef.current.preload = "auto";
+      const audio = new Audio();
+      audio.preload = "auto";
+      // 🚀 Required for iOS PWA Background/Standalone playback
+      audio.setAttribute('playsinline', 'true');
+      audioRef.current = audio;
     }
   }, []);
 
-  // Update playback rate whenever it changes
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackRate;
   }, [playbackRate]);
@@ -41,10 +42,16 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const playAyah = async (index: number, ayahs: any[], reciter: string) => {
     if (!audioRef.current) return;
 
+    // 🚀 STEP 1: iOS Hardware Kick (Sync)
+    // Claim the audio channel immediately before the URL load
+    audioRef.current.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+    try { await audioRef.current.play(); } catch (e) { /* silent fail ok */ }
+
     const ayah = ayahs[index];
+    // High-quality bitrate often performs better on stable PWA installs
     const audioUrl = `https://cdn.islamic.network/quran/audio/64/${reciter}/${ayah.number}.mp3`;
 
-    // 🚀 Force iOS to recognize a new source load
+    // 🚀 STEP 2: Load real source
     audioRef.current.pause();
     audioRef.current.src = audioUrl;
     audioRef.current.load();
@@ -53,16 +60,15 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     setPlaylist(ayahs);
 
     try {
-      await audioRef.current.play(); // 🚀 Await is required for iOS
+      await audioRef.current.play();
       setIsPlaying(true);
-    } catch (err) {
-      console.error("Playback failed, retrying...", err);
-      // Fallback: iOS sometimes requires a direct play call after a user gesture
-      audioRef.current.play();
-      setIsPlaying(true);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error("Playback failed:", err);
+        setIsPlaying(false);
+      }
     }
 
-    // Handle Auto-Play next Ayah
     audioRef.current.onended = () => {
       if (isLooping) {
         audioRef.current?.play();
@@ -81,7 +87,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      audioRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
   };

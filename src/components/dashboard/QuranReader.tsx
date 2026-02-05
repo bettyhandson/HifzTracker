@@ -17,7 +17,7 @@ export default function QuranReader({ userId }: { userId: string }) {
   const [preferredReciter, setPreferredReciter] = useState('ar.alafasy'); 
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // 🚀 iOS PWA UNLOCK: Synchronous hardware wake-up
+  // 🚀 iOS PWA UNLOCK: Master handler to resume audio context
   const handleMasterPlay = async (index?: number) => {
     try {
       const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -26,7 +26,7 @@ export default function QuranReader({ userId }: { userId: string }) {
         if (tempCtx.state === 'suspended') await tempCtx.resume();
       }
     } catch (e) {
-      console.warn("Audio hardware busy");
+      console.warn("Hardware busy");
     }
 
     if (index !== undefined) {
@@ -35,7 +35,7 @@ export default function QuranReader({ userId }: { userId: string }) {
       if (isPlaying) {
         toggleAudio();
       } else {
-        const target = activeAyahIndex !== null ? activeAyahIndex : 0;
+        const target = (typeof activeAyahIndex === 'number') ? activeAyahIndex : 0;
         playAyah(target, ayahs, preferredReciter);
       }
     }
@@ -43,10 +43,18 @@ export default function QuranReader({ userId }: { userId: string }) {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data } = await supabase.from('profiles').select('preferred_reciter').eq('id', userId).single();
+      // 🚀 FIX: Prevent Supabase 400 error for Guest users
+      if (!userId || userId === 'guest') return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('preferred_reciter')
+        .eq('id', userId)
+        .single();
+        
       if (data?.preferred_reciter) setPreferredReciter(data.preferred_reciter);
     };
-    if (userId) fetchProfile();
+    fetchProfile();
   }, [userId]);
 
   useEffect(() => {
@@ -76,12 +84,11 @@ export default function QuranReader({ userId }: { userId: string }) {
       });
   }, [selectedSurah]);
 
-   useEffect(() => {
-  // 🚀 Add 'typeof activeAyahIndex === "number"' to satisfy TypeScript
-  if (isPlaying && playlist[0]?.surah === selectedSurah && typeof activeAyahIndex === 'number') {
-    ayahRefs.current[activeAyahIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}, [activeAyahIndex, isPlaying, selectedSurah, playlist]);
+  useEffect(() => {
+    if (isPlaying && playlist[0]?.surah === selectedSurah && typeof activeAyahIndex === 'number') {
+      ayahRefs.current[activeAyahIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeAyahIndex, isPlaying, selectedSurah, playlist]);
 
   return (
     <Card className="bg-[#0a0a0a] border-white/5 overflow-hidden flex flex-col h-[75vh] md:h-[85vh]">
