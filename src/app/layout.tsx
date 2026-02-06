@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     images: [
       {
         // 🚀 Using Absolute URL to ensure WhatsApp/X can crawl the image properly
-        url: "https://optimistcx.space/icons/icon-512.png", 
+        url: "https://optimistcx.space/Hifz.jpg", 
         width: 512,
         height: 512,
         alt: "HifzTracker App Logo",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     title: "HifzTracker | Quranic Consistency",
     description: "Track your Hifz and master your verses with interactive challenges.",
     // 🚀 Using Absolute URL here as well
-    images: ["https://optimistcx.space/icons/icon-512.png"],
+    images: ["https://optimistcx.space/Hifz.jpg"],
   },
 
   appleWebApp: {
