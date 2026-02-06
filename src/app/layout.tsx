@@ -10,18 +10,23 @@ import RefreshHandler from '@/components/RefreshHandler'; // 🚀 Handles pull-t
 
 const inter = Inter({ subsets: ["latin"] });
 
-// 🚀 Professional Metadata for PWA & SEO
 export const metadata: Metadata = {
   title: "HifzTracker | Earn Eternity Rewards",
   description: "Track your Quran journey and stay consistent during Ramadan.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent", // 🚀 Blends with the dark theme
+    statusBarStyle: "black-translucent",
     title: "HifzTracker",
+    // 🚀 Add this: helps iOS recognize the app icon during the "Add to Home Screen" process
+    startupImage: [
+      '/icons/icon-512.png', 
+    ],
   },
+  // 🚀 Ensure icons are explicitly defined for Apple
   icons: {
-    apple: "/icons/icon-192.png", // Ensure this path matches your public folder
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
   },
 };
 

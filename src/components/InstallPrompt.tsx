@@ -10,23 +10,33 @@ export default function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
  
   useEffect(() => {
-    // 1. Detect iOS
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+  // 1. More robust iOS Detection
+  const isIosDevice = 
+    /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // For newer iPads
 
-    // 2. Detect if already installed (Standalone mode)
-    const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator as any).standalone;
-    
-    setIsIOS(isIosDevice);
-    setIsStandalone(isInStandaloneMode);
+  // 2. Stronger Standalone Check
+  const isInStandaloneMode = 
+    (window.navigator as any).standalone === true || 
+    window.matchMedia('(display-mode: standalone)').matches;
 
-    // 3. Show prompt only if on iOS and NOT installed
-    if (isIosDevice && !isInStandaloneMode) {
-      // Delay slightly so it doesn't pop up instantly on load
-      const timer = setTimeout(() => setShowPrompt(true), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // 3. Persistence Check (Don't show if they already dismissed it today)
+  const isDismissed = localStorage.getItem('installPromptDismissed');
+
+  setIsIOS(isIosDevice);
+  setIsStandalone(isInStandaloneMode);
+
+  if (isIosDevice && !isInStandaloneMode && !isDismissed) {
+    const timer = setTimeout(() => setShowPrompt(true), 3000);
+    return () => clearTimeout(timer);
+  }
+}, []);
+
+// 4. Update the close function to remember dismissal
+const handleClose = () => {
+  setShowPrompt(false);
+  localStorage.setItem('installPromptDismissed', 'true');
+};
 
   if (!showPrompt) return null;
 
