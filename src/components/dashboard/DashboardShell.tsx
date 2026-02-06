@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation"; 
-import { BookOpen, LayoutDashboard, Settings, LogOut, Menu, Trophy, Sparkles, Heart, BookAlert, BookCheckIcon, HistoryIcon, Goal } from "lucide-react";
+import { BookOpen, LayoutDashboard, Settings, LogOut, Menu, Trophy, Sparkles, Heart, BookAlert, BookCheckIcon, HistoryIcon, Goal, Gamepad } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from '@/lib/supabase';
@@ -16,8 +16,8 @@ const menuItems = [
   { name: 'Leaderboard', icon: Trophy, href: '/dashboard/leaderboard' },
   { name: 'Support Mission', icon: Heart, href: '/dashboard/donate' },
   { name: 'Achievements', icon: Goal, href: '/dashboard/awards' },
+  {name: 'Game Zone', icon: Gamepad, href: '/dashboard/game' },
   { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
-
 ];
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {

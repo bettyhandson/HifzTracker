@@ -8,6 +8,7 @@ import LogProgressForm from "@/components/dashboard/LogProgressForm";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap";
 import IslamicCalendar from "@/components/dashboard/IslamicCalendar";
 import SmartRevision from "@/components/dashboard/SmartRevision";
+import MotivationCard from '@/components/dashboard/MotivationCard';
 import { Loader2, Quote } from "lucide-react";
 import { Card } from '@/components/ui/card';
 
@@ -99,7 +100,7 @@ export default function DashboardPage() {
                  <p className="text-emerald-200 text-xs font-bold uppercase tracking-widest">(Bukhari)</p>
                  
                  <div className="h-px w-full bg-white/20 my-4" />
-                 
+    
                  <p className="text-xs font-bold text-emerald-100 uppercase tracking-widest flex items-center gap-2">
                     Current Streak: <span className="text-white bg-white/20 px-2 py-0.5 rounded-md">{profile?.current_streak || 0} Days</span>
                  </p>
