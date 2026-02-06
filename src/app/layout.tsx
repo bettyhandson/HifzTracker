@@ -10,20 +10,49 @@ import RefreshHandler from '@/components/RefreshHandler'; // 🚀 Handles pull-t
 
 const inter = Inter({ subsets: ["latin"] });
 
+// 🚀 Professional Metadata for PWA, SEO & Social Sharing
 export const metadata: Metadata = {
-  title: "HifzTracker | Earn Eternity Rewards",
-  description: "Track your Quran journey and stay consistent during Ramadan.",
+  title: "HifzTracker | Quranic Consistency & Hifz Tracker",
+  description: "Secure your eternity journey. Track your Quran progress, join the Verse Master challenges, and build unbreakable daily habits.",
   manifest: "/manifest.json",
+  
+  // 🚀 Open Graph (WhatsApp, LinkedIn, Facebook)
+  openGraph: {
+    title: "HifzTracker | Crafting Unbreakable Quran Habits",
+    description: "The modern companion for Quranic consistency. Start your journey today.",
+    url: "https://optimistcx.space",
+    siteName: "HifzTracker",
+    images: [
+      {
+        url: "/icons/icon-512.png", // 🚀 Ensures logo shows in WhatsApp/Social shares
+        width: 512,
+        height: 512,
+        alt: "HifzTracker App Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+
+  // 🚀 Twitter/X Metadata
+  twitter: {
+    card: "summary_large_image",
+    title: "HifzTracker | Quranic Consistency",
+    description: "Track your Hifz and master your verses with interactive challenges.",
+    images: ["/icons/icon-512.png"],
+  },
+
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "HifzTracker",
-    // 🚀 Add this: helps iOS recognize the app icon during the "Add to Home Screen" process
+    // 🚀 Helps iOS recognize the app icon during the "Add to Home Screen" process
     startupImage: [
       '/icons/icon-512.png', 
     ],
   },
-  // 🚀 Ensure icons are explicitly defined for Apple
+
+  // 🚀 Explicitly defined icons
   icons: {
     icon: '/icons/icon-192.png',
     apple: '/icons/icon-192.png',
@@ -32,7 +61,6 @@ export const metadata: Metadata = {
 
 // 🚀 Viewport Settings
 export const viewport: Viewport = {
-  // 🎨 Changed to Navy (#020617) so the status bar blends with your app background
   themeColor: "#020617", 
   width: "device-width",
   initialScale: 1,
@@ -49,19 +77,16 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} bg-[#020617] text-white`}>
         <AudioProvider>
-          {/* Top Banner (Optional - you can keep or remove if using the new slide-up prompt) */}
-          <RefreshHandler /> {/* 🚀 Simply add it here */}
+          <RefreshHandler /> 
           <InstallBanner /> 
           
           {children}
 
           <Toaster position="top-center" richColors />
           
-          {/* Global Audio Player */}
           <MiniPlayer /> 
         </AudioProvider>
         
-        {/* 🚀 The iOS Slide-Up Guide */}
         <InstallPrompt /> 
       </body>
     </html>
