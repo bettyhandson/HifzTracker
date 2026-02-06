@@ -70,8 +70,8 @@ export default function ActivityHeatmap({ userId }: { userId: string | null }) {
       
       const shareData = {
         title: 'My HifzTracker Momentum',
-        text: `I've maintained a ${stats.streak}-day streak on HifzTracker! 🚀\n\nSecure your akhirah journey:`,
-        url: 'https://hifztracker.space', 
+        text: `I've maintained a ${stats.streak}-day streak on HifzTracker! 🚀\n\nJoin me on HifzTracker:`,
+        url: 'https://optimistcx.space', 
         files: [file]
       };
 
@@ -82,7 +82,7 @@ export default function ActivityHeatmap({ userId }: { userId: string | null }) {
         link.download = `hifz-momentum-${new Date().toISOString().split('T')[0]}.png`;
         link.href = URL.createObjectURL(blob);
         link.click();
-        await navigator.clipboard.writeText('https://hifztracker.space');
+        await navigator.clipboard.writeText('https://optimistcx.space');
         alert("Image downloaded & Link copied to clipboard! 📋");
       }
     } catch (err) {
@@ -162,7 +162,7 @@ export default function ActivityHeatmap({ userId }: { userId: string | null }) {
               </h2>
               <div className="flex items-center gap-2">
                 <span className="h-0.5 w-6 md:w-8 bg-emerald-500/50 rounded-full"></span>
-                <p className="text-[9px] md:text-[10px] text-emerald-500/80 uppercase tracking-[0.2em] font-bold">hifztracker.space</p>
+                <p className="text-[9px] md:text-[10px] text-emerald-500/80 uppercase tracking-[0.2em] font-bold">hifztracker</p>
               </div>
             </div>
             
