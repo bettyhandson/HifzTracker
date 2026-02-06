@@ -83,7 +83,7 @@ export default function PrivacyPolicy() {
             </h2>
             <p className="leading-relaxed">
               If you have any questions about this Privacy Policy, please contact us at: <br />
-              <a href="mailto:contact@hifztracker.space" className="text-emerald-600 hover:underline font-bold">contact@hifztracker.space</a>
+              <a href="mailto:contact@hifztracker.space" className="text-emerald-600 hover:underline font-bold">support@optimistcx.space</a>
             </p>
           </section>
         </div>
