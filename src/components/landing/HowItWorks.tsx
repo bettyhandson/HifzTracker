@@ -1,12 +1,14 @@
 'use client';
 
 import { UserPlus, ClipboardCheck, LayoutDashboard } from "lucide-react";
+import Link from "next/link"; // 🚀 Import Link
 
 const steps = [
   {
     name: "Create an Account",
-    description: "Create your secure account with just an email and password. No complicated setup—get started in seconds.", // 🚀 Fixed: Accurate Description
+    description: "Create your secure account with just an email and password. No complicated setup—get started in seconds.",
     icon: UserPlus,
+    href: "/login", // 🚀 Add the destination
   },
   {
     name: "Log Daily Progress",
@@ -46,29 +48,45 @@ export default function HowItWorks() {
             {/* 2. Desktop Connector Line (The Path) */}
             <div className="hidden lg:block absolute top-12 left-[16%] right-[16%] h-0.5 border-t-2 border-dashed border-emerald-200 -z-10" />
 
-            {steps.map((step, index) => (
-              <div key={step.name} className="relative flex flex-col items-center text-center group">
-                
-                {/* Step Icon Wrapper */}
-                <div className="relative mb-8">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white text-emerald-600 shadow-xl shadow-emerald-900/5 ring-1 ring-emerald-100 transition-transform duration-300 group-hover:-translate-y-2">
-                    <step.icon className="h-10 w-10" aria-hidden="true" />
+            {steps.map((step, index) => {
+              // 🚀 Create a wrapper component logic
+              const content = (
+                <div className={`relative flex flex-col items-center text-center group ${step.href ? 'cursor-pointer' : ''}`}>
+                  {/* Step Icon Wrapper */}
+                  <div className="relative mb-8">
+                    <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white text-emerald-600 shadow-xl shadow-emerald-900/5 ring-1 ring-emerald-100 transition-all duration-300 group-hover:-translate-y-2 group-hover:ring-emerald-500 group-hover:shadow-emerald-900/10">
+                      <step.icon className="h-10 w-10" aria-hidden="true" />
+                    </div>
+                    {/* Step Number Badge */}
+                    <div className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white shadow-lg border-2 border-white">
+                      {index + 1}
+                    </div>
                   </div>
-                  {/* Step Number Badge */}
-                  <div className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white shadow-lg border-2 border-white">
-                    {index + 1}
-                  </div>
+                  
+                  <dt className={`text-xl font-bold leading-7 text-slate-900 ${step.href ? 'group-hover:text-emerald-600 transition-colors' : ''}`}>
+                    {step.name}
+                    {step.href && <span className="block text-[10px] text-emerald-500 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">Click to Start</span>}
+                  </dt>
+                  
+                  <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-slate-600">
+                    <p className="flex-auto">{step.description}</p>
+                  </dd>
                 </div>
-                
-                <dt className="text-xl font-bold leading-7 text-slate-900">
-                  {step.name}
-                </dt>
-                
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-slate-600">
-                  <p className="flex-auto">{step.description}</p>
-                </dd>
-              </div>
-            ))}
+              );
+
+              // 🚀 Wrap in Link if href exists, otherwise just return content
+              return (
+                <div key={step.name}>
+                  {step.href ? (
+                    <Link href={step.href}>
+                      {content}
+                    </Link>
+                  ) : (
+                    content
+                  )}
+                </div>
+              );
+            })}
           </dl>
         </div>
       </div>
