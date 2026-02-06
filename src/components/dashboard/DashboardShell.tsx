@@ -3,17 +3,18 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation"; 
-import { BookOpen, LayoutDashboard, Settings, LogOut, Menu, Trophy, Sparkles, Heart, BookAlert, BookCheckIcon, HistoryIcon, Goal, Gamepad, MessageSquare } from "lucide-react";
+import { BookOpen, LayoutDashboard, Settings, LogOut, Menu, Trophy, Sparkles, Heart, BookAlert, BookCheckIcon, HistoryIcon, Goal, Gamepad, MessageSquare, Icon, MemoryStickIcon, BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from '@/lib/supabase';
 
 const menuItems = [
   { name: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
-  { name: 'My Quran', icon: BookCheckIcon, href: '/dashboard/recite' }, 
-  {name:  'Adhkar', icon: BookAlert, href: '/dashboard/adhkar' },
+  { name: 'My Quran', icon: BookCheckIcon, href: '/dashboard/recite' },
+  { name:  'Adhkar', icon: BookAlert, href: '/dashboard/adhkar' },
   { name: 'Hifz Logs', icon: HistoryIcon, href: '/dashboard/logs' },
-  {name: 'Game Zone', icon: Gamepad, href: '/dashboard/game' },
+  { name: 'Memory Map', icon: BrainCircuit, href: '/dashboard/retention'},
+  { name: 'Game Zone', icon: Gamepad, href: '/dashboard/game' },
   { name: 'Support Mission', icon: Heart, href: '/dashboard/donate' },
   { name: 'Leaderboard', icon: Trophy, href: '/dashboard/leaderboard' },
   { name: 'Achievements', icon: Goal, href: '/dashboard/awards' },
