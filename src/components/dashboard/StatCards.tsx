@@ -1,3 +1,5 @@
+'use client';
+
 import { Card } from "@/components/ui/card";
 import { TrendingUp, Flame, CheckCircle } from "lucide-react";
 
@@ -16,7 +18,8 @@ export default function StatCards({ profile }: { profile: any }) {
         <div className="space-y-2">
           {/* If guest, we could calculate total ayahs from localStorage logs here */}
           <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
-            {isGuest ? (profile?.totalAyahs || 0) : "1.2M+"}
+            {/* 🚀 FIXED: Added the missing closing parenthesis below */}
+            {isGuest ? (profile?.total_ayahs_read || 0) : (profile?.total_ayahs_read || 0)} <span className="text-lg md:text-2xl text-slate-400">Total Ayah</span>
           </h3>
           <p className="text-emerald-400 text-xs font-medium">Unrealised return: Eternity Rewards</p>
         </div>
