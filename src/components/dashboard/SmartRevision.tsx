@@ -109,7 +109,7 @@ export default function SmartRevision({ userId }: { userId: string | null }) {
     }
   } catch (err) {
     console.error("Share failed:", err);
-    toast.error("Sharing is only available on secure (HTTPS) connections.");
+    toast.error("");
   }
 };
 
