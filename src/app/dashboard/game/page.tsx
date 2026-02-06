@@ -5,21 +5,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Trophy, CheckCircle2, XCircle, PartyPopper } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { GAME_DATA } from '@/data/gameData' // 🚀 Importing your new data engine
+import { GAME_DATA } from '@/data/gameData'
+import { createClient } from '@/utils/supabase/client' // 1. Add this import
 
 export default function IslamicGamePage() {
   const router = useRouter()
+  const supabase = createClient() // 2. Initialize client
   
-  // 1. 🗓️ AUTO-DAY LOGIC
-  // This calculates which day of the 30-day challenge it is
-  const startDate = new Date('2026-02-17').getTime(); // App Launch Date
+  const startDate = new Date('2026-02-17').getTime();
   const today = new Date().getTime();
   const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
   const currentDay = diffDays >= 1 && diffDays <= 30 ? diffDays : 1;
 
   const todaysQuestions = GAME_DATA[currentDay] || GAME_DATA[1];
 
-  // 2. STATE
   const [currentLevel, setCurrentLevel] = useState(0)
   const [score, setScore] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
@@ -28,11 +27,37 @@ export default function IslamicGamePage() {
 
   const level = todaysQuestions[currentLevel]
 
+  // 3. Database Sync Logic
+  const saveProgressToDatabase = async (finalScore: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      // Fetch current XP first to add to it
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('total_xp, last_game_day')
+        .eq('id', user.id)
+        .single();
+
+      // Only update if they haven't already saved today's score
+      if (profile && profile.last_game_day !== currentDay) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            total_xp: (profile.total_xp || 0) + finalScore,
+            last_game_day: currentDay 
+          })
+          .eq('id', user.id);
+      }
+    }
+  }
+
   const handleChoice = (choice: string) => {
     setSelected(choice)
     if (choice === level.missing_word) {
       setStatus('correct')
-      setScore(s => s + 10)
+      const newScore = score + 10
+      setScore(newScore)
       
       setTimeout(() => {
         if (currentLevel < todaysQuestions.length - 1) {
@@ -40,7 +65,8 @@ export default function IslamicGamePage() {
           setSelected(null)
           setStatus('idle')
         } else {
-          setIsFinished(true) // 🎉 Day Completed!
+          setIsFinished(true)
+          saveProgressToDatabase(newScore) // 4. Save to DB only when all 5 are done
         }
       }, 1500)
     } else {
@@ -51,6 +77,8 @@ export default function IslamicGamePage() {
       }, 1000)
     }
   }
+
+  // ... (Your existing return and Success Screen code remains exactly the same)
 
   // 🎉 SUCCESS SCREEN COMPONENT
   if (isFinished) {
