@@ -13,7 +13,7 @@ const menuItems = [
   { name: 'My Quran', icon: BookCheckIcon, href: '/dashboard/recite' },
   { name:  'Adhkar', icon: BookAlert, href: '/dashboard/adhkar' },
   { name: 'Hifz Logs', icon: HistoryIcon, href: '/dashboard/logs' },
-  { name: 'Memory Map', icon: BrainCircuit, href: '/dashboard/retention'},
+  { name: "Muraja'ah Hub", icon: BrainCircuit, href: '/dashboard/retention'},
   { name: 'Game Zone', icon: Gamepad, href: '/dashboard/game' },
   { name: 'Support Mission', icon: Heart, href: '/dashboard/donate' },
   { name: 'Leaderboard', icon: Trophy, href: '/dashboard/leaderboard' },
