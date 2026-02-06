@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation"; 
-import { BookOpen, LayoutDashboard, Settings, LogOut, Menu, Trophy, Sparkles, Heart, BookAlert, BookCheckIcon, HistoryIcon, Goal, Gamepad } from "lucide-react";
+import { BookOpen, LayoutDashboard, Settings, LogOut, Menu, Trophy, Sparkles, Heart, BookAlert, BookCheckIcon, HistoryIcon, Goal, Gamepad, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from '@/lib/supabase';
@@ -13,10 +13,10 @@ const menuItems = [
   { name: 'My Quran', icon: BookCheckIcon, href: '/dashboard/recite' }, 
   {name:  'Adhkar', icon: BookAlert, href: '/dashboard/adhkar' },
   { name: 'Hifz Logs', icon: HistoryIcon, href: '/dashboard/logs' },
-  { name: 'Leaderboard', icon: Trophy, href: '/dashboard/leaderboard' },
-  { name: 'Support Mission', icon: Heart, href: '/dashboard/donate' },
-  { name: 'Achievements', icon: Goal, href: '/dashboard/awards' },
   {name: 'Game Zone', icon: Gamepad, href: '/dashboard/game' },
+  { name: 'Support Mission', icon: Heart, href: '/dashboard/donate' },
+  { name: 'Leaderboard', icon: Trophy, href: '/dashboard/leaderboard' },
+  { name: 'Achievements', icon: Goal, href: '/dashboard/awards' },
   { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
 ];
 
@@ -46,6 +46,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     return () => clearInterval(interval);
   }, []);
 
+  // 🚀 Logic to prevent global pull-to-refresh from triggering inside sidebars
+  const preventRefresh = (e: React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
   const CountdownWidget = () => (
     <div className="mt-auto px-2 py-4">
       <div className="bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl p-4 backdrop-blur-sm">
@@ -71,6 +76,21 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </div>
     </div>
+  );
+
+  const CommunityButton = () => (
+    <a 
+      href="https://chat.whatsapp.com/LMWf8gHJtn8HL6uX7MPovE" 
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all mb-2 group"
+    >
+      <MessageSquare className="h-5 w-5 group-hover:scale-110 transition-transform" />
+      <div className="flex flex-col items-start">
+        <span className="text-[10px] font-black uppercase tracking-widest">Join Community</span>
+        <span className="text-[9px] text-emerald-500/60 font-medium tracking-tight">Connect with the Ummah</span>
+      </div>
+    </a>
   );
 
   const handleLogout = async () => {
@@ -101,34 +121,39 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen bg-slate-950 text-white">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-emerald-500/20 bg-slate-900/50 backdrop-blur p-6 sticky top-0 h-screen">
-        <div className="flex items-center gap-3 font-bold text-emerald-400 text-xl mb-12">
+      <aside 
+        onTouchStart={preventRefresh}
+        onTouchMove={preventRefresh}
+        style={{ overscrollBehaviorY: 'contain' }}
+        className="hidden md:flex w-64 flex-col border-r border-emerald-500/20 bg-slate-900/50 backdrop-blur sticky top-0 h-screen overflow-hidden"
+      >
+        <div className="p-6 flex items-center gap-3 font-bold text-emerald-400 text-xl mb-6 shrink-0">
           <div className="p-2 bg-emerald-500/10 rounded-lg">
             <BookOpen className="h-6 w-6" />
           </div>
           <span>HifzTracker</span>
         </div>
         
-        <nav className="flex-1 space-y-3">
+        <nav className="flex-1 overflow-y-auto px-6 space-y-3 custom-scrollbar">
           {menuItems.map((item) => (
             <NavLink key={item.name} item={item} />
           ))}
         </nav>
 
-        {/* Desktop Countdown */}
-        <CountdownWidget />
-        
-        <Button 
-          variant="ghost" 
-          className="justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all mt-4"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5 mr-3" />
-          <span>Logout</span>
-        </Button>
+        <div className="p-6 border-t border-emerald-500/10 mt-auto bg-slate-900/40">
+          <CommunityButton />
+          <CountdownWidget />
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all mt-2"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-5 w-5 mr-3" />
+            <span>Logout</span>
+          </Button>
+        </div>
       </aside>
 
-      {/* Mobile & Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-emerald-500/20 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
           <div className="flex items-center gap-2 font-bold text-emerald-400">
@@ -142,15 +167,21 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="bg-slate-900 border-emerald-500/20 text-white p-0 flex flex-col">
-              <div className="flex items-center justify-between p-6 border-b border-emerald-500/20">
+            <SheetContent 
+              side="left" 
+              onTouchStart={preventRefresh}
+              onTouchMove={preventRefresh}
+              style={{ overscrollBehaviorY: 'contain' }}
+              className="bg-slate-900 border-emerald-500/20 text-white p-0 flex flex-col h-full overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-emerald-500/20 shrink-0">
                 <div className="flex items-center gap-2 font-bold text-emerald-400">
                   <BookOpen className="h-5 w-5" />
                   <span>HifzTracker</span>
                 </div>
               </div>
               
-              <nav className="flex-1 space-y-2 p-6">
+              <nav className="flex-1 overflow-y-auto p-6 space-y-2 custom-scrollbar">
                 {menuItems.map((item) => (
                   <Link 
                     key={item.name} 
@@ -168,20 +199,23 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 ))}
               </nav>
 
-              {/* Mobile Countdown */}
-              <div className="px-4 border-t border-emerald-500/10">
-                <CountdownWidget />
-              </div>
-              
-              <div className="p-6 border-t border-emerald-500/20">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5 mr-3" />
-                  Logout
-                </Button>
+              <div className="mt-auto border-t border-emerald-500/10 bg-slate-900/80 backdrop-blur-lg">
+                <div className="px-6 pt-6">
+                   <CommunityButton />
+                </div>
+                <div className="px-4">
+                  <CountdownWidget />
+                </div>
+                <div className="p-6 pt-0">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-5 w-5 mr-3" />
+                    Logout
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
