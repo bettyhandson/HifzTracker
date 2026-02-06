@@ -6,6 +6,7 @@ import MiniPlayer from '@/components/dashboard/MiniPlayer';
 import InstallBanner from '@/components/ui/InstallBanner';
 import { Toaster } from 'sonner';
 import InstallPrompt from "@/components/InstallPrompt"; // 🚀 The new component
+import RefreshHandler from '@/components/RefreshHandler'; // 🚀 Handles pull-to-refresh on mobile
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-[#020617] text-white`}>
         <AudioProvider>
           {/* Top Banner (Optional - you can keep or remove if using the new slide-up prompt) */}
+          <RefreshHandler /> {/* 🚀 Simply add it here */}
           <InstallBanner /> 
           
           {children}
