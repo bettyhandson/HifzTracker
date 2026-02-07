@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, Flame, ArrowRight, BrainCircuit, Target, Share2, BarChart3 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Flame, ArrowRight, BrainCircuit, Target, Share2, BarChart3, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 import { SURAHS } from '@/lib/quran';
@@ -15,6 +15,8 @@ interface RevisionItem {
   surahName: string;
   daysAgo: number;
   lastRead: string;
+  isUrgent: boolean;
+  sessions: number;
 }
 
 export default function SmartRevision({ userId }: { userId: string | null }) {
@@ -26,13 +28,18 @@ export default function SmartRevision({ userId }: { userId: string | null }) {
   const [totalTracked, setTotalTracked] = useState(0);
 
   const processData = (logs: any[]) => {
-    const lastReadMap: Record<number, string> = {};
+    const statsMap: Record<number, { lastRead: string, count: number }> = {};
     let maxSurahId = 0;
 
     logs.forEach((log) => {
       const current = new Date(log.created_at).getTime();
-      const existing = lastReadMap[log.surah_number] ? new Date(lastReadMap[log.surah_number]).getTime() : 0;
-      if (current > existing) lastReadMap[log.surah_number] = log.created_at;
+      if (!statsMap[log.surah_number]) {
+        statsMap[log.surah_number] = { lastRead: log.created_at, count: 0 };
+      }
+      const existing = new Date(statsMap[log.surah_number].lastRead).getTime();
+      if (current > existing) statsMap[log.surah_number].lastRead = log.created_at;
+      
+      statsMap[log.surah_number].count += 1;
       if (log.surah_number > maxSurahId) maxSurahId = log.surah_number;
     });
 
@@ -40,25 +47,29 @@ export default function SmartRevision({ userId }: { userId: string | null }) {
     today.setHours(0, 0, 0, 0);
     
     const needsReview: RevisionItem[] = [];
-    const trackedCount = Object.keys(lastReadMap).length;
+    const trackedCount = Object.keys(statsMap).length;
     setTotalTracked(trackedCount);
-    let weakCount = 0;
+    let weakPoints = 0;
 
-    Object.keys(lastReadMap).forEach((surahStr) => {
+    Object.keys(statsMap).forEach((surahStr) => {
       const surahId = parseInt(surahStr);
-      const lastReadDate = new Date(lastReadMap[surahId]);
+      const data = statsMap[surahId];
+      const lastReadDate = new Date(data.lastRead);
       lastReadDate.setHours(0, 0, 0, 0);
 
       const diffDays = Math.floor((today.getTime() - lastReadDate.getTime()) / (1000 * 60 * 60 * 24)); 
+      const threshold = data.count >= 5 ? 7 : 2;
 
-      if (diffDays >= 2) {
-        weakCount++;
+      if (diffDays >= threshold) {
+        weakPoints += (data.count >= 5 ? 0.5 : 1);
         const surahInfo = SURAHS.find(s => s.id === surahId);
         needsReview.push({ 
           surah: surahId, 
           surahName: surahInfo?.name || `Surah ${surahId}`,
           daysAgo: diffDays, 
-          lastRead: lastReadMap[surahId] 
+          lastRead: data.lastRead,
+          isUrgent: diffDays >= (threshold + 2),
+          sessions: data.count
         });
       }
     });
@@ -68,7 +79,7 @@ export default function SmartRevision({ userId }: { userId: string | null }) {
       if (next) setNextSuggested(next);
     }
 
-    const score = trackedCount > 0 ? Math.round(((trackedCount - weakCount) / trackedCount) * 100) : 100;
+    const score = trackedCount > 0 ? Math.max(0, Math.round(((trackedCount - weakPoints) / trackedCount) * 100)) : 100;
     setRetentionScore(score);
 
     return needsReview.sort((a, b) => b.daysAgo - a.daysAgo).slice(0, 3);
@@ -89,33 +100,20 @@ export default function SmartRevision({ userId }: { userId: string | null }) {
     fetchHistory();
   }, [userId]);
 
- const handleShare = async () => {
+  const handleShare = async () => {
     const status = retentionScore >= 90 ? "Excellent ✅" : retentionScore >= 70 ? "Good 📈" : "Needs Focus ⚠️";
     const text = `📖 *HifzTracker Progress Report*\n\n🏆 Retention Score: ${retentionScore}%\n📊 Status: ${status}\n📚 Surahs Tracked: ${totalTracked}\n\nJoin me on HifzTracker to master your Quranic consistency!\n🔗 https://optimistcx.space`;
 
     try {
-      // 1. Try native mobile share first
       if (navigator.share) {
         await navigator.share({ title: 'My Hifz Progress', text: text });
-      } 
-      // 2. Fallback to clipboard
-      else if (navigator.clipboard && navigator.clipboard.writeText) {
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
         toast.success("Copied to clipboard!");
       } 
-      else {
-        throw new Error("ShareMethodUnsupported");
-      }
     } catch (err) {
-      // Ignore the error if the user manually cancelled/dismissed the share sheet
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.log("Share dismissed by user");
-        return; 
-      }
-
-      // Handle actual technical failures
-      console.error("Share failed:", err);
-      toast.error("Unable to share at this time");
+      if (err instanceof Error && err.name === 'AbortError') return;
+      toast.error("Unable to share");
     }
   };
 
@@ -128,107 +126,66 @@ export default function SmartRevision({ userId }: { userId: string | null }) {
       </div>
 
       <div className="relative z-10 space-y-6">
-        {/* Header Section */}
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <h3 className="text-white font-black text-xl italic tracking-tight flex items-center gap-2">
               <Flame className={`h-5 w-5 ${retentionScore < 70 ? 'text-orange-500 animate-pulse' : 'text-emerald-500'}`} />
-              Retention Health
+              Stability
             </h3>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Live Memory Score</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Adaptive Memory Score</p>
           </div>
           
           <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleShare}
-              className="rounded-xl bg-white/5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 h-10 w-10"
-            >
+            <Button variant="ghost" size="icon" onClick={handleShare} className="rounded-xl bg-white/5 text-slate-400 hover:text-emerald-500 h-10 w-10">
               <Share2 className="h-4 w-4" />
             </Button>
-            {/* 🚀 Navigation to Full Retention Page */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => router.push('/dashboard/retention')}
-              className="rounded-xl bg-white/5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 h-10 w-10"
-            >
+            <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/retention')} className="rounded-xl bg-white/5 text-slate-400 hover:text-emerald-500 h-10 w-10">
               <BarChart3 className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* Progress Section */}
         <div className="space-y-2">
           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-             <span className="text-slate-500">Stability</span>
+             <span className="text-slate-500">Brain Strength</span>
              <span className={retentionScore < 70 ? 'text-orange-500' : 'text-emerald-500'}>{retentionScore}%</span>
           </div>
           <Progress value={retentionScore} className="h-2 bg-white/5" />
         </div>
 
-        {/* Action List */}
         {revisionList.length > 0 ? (
           <div className="space-y-3">
             <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-2">
-              <AlertTriangle className="h-3 w-3" /> Urgent Revision
+              <AlertTriangle className="h-3 w-3" /> Priority Revision
             </p>
             {revisionList.map((item) => (
-              <div key={item.surah} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-orange-500/30 transition-all">
+              <div key={item.surah} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all">
                 <div className="flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black border ${item.daysAgo > 4 ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-orange-500/10 text-orange-500 border-orange-500/20'}`}>
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black border ${item.isUrgent ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-orange-500/10 text-orange-500 border-orange-500/20'}`}>
                     {item.surah}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white tracking-tight">{item.surahName}</p>
-                    <p className="text-[10px] text-slate-500 font-medium tracking-wide">Last log: {item.daysAgo}d ago</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-white tracking-tight">{item.surahName}</p>
+                      {item.sessions >= 10 ? <Sparkles className="h-3 w-3 text-yellow-500" /> : item.sessions >= 5 ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : null}
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium tracking-wide">{item.daysAgo}d gap • {item.sessions} logs</p>
                   </div>
                 </div>
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  onClick={() => router.push('/dashboard/recite')}
-                  className="rounded-full hover:bg-orange-500/20 text-slate-500 hover:text-orange-500"
-                >
+                <Button size="icon" variant="ghost" onClick={() => router.push('/dashboard/recite')} className="rounded-full hover:bg-emerald-500/20 text-slate-500 hover:text-emerald-500">
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="py-2 space-y-4">
-            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 flex items-center gap-4">
-              <div className="h-10 w-10 bg-emerald-500/20 rounded-full flex items-center justify-center shrink-0">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                Memory <span className="text-emerald-400 font-bold italic underline underline-offset-4">Optimized</span>. All tracked Surahs are currently in the safe zone.
-              </p>
-            </div>
-
-            {nextSuggested && (
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 group/goal cursor-pointer hover:bg-emerald-500/20 transition-all" onClick={() => router.push('/dashboard/recite')}>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                      <Target className="h-3 w-3" /> Recommended
-                    </p>
-                    <h4 className="text-white font-bold text-sm tracking-tight">Begin Surah {nextSuggested.name}</h4>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-emerald-500 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            )}
+          <div className="py-2 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 flex items-center gap-4">
+             <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />
+             <p className="text-xs text-slate-300 font-medium">Memory <span className="text-emerald-400 font-bold italic">Optimized</span>. Focus on new surahs.</p>
           </div>
         )}
         
-        {/* 🚀 Footer Link to Full Page */}
-        <Button 
-  variant="ghost" 
-  onClick={() => router.push('/dashboard/retention')}
-  className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-emerald-500"
->
+        <Button variant="ghost" onClick={() => router.push('/dashboard/retention')} className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-emerald-500">
           Explore Detailed Memory Map
         </Button>
       </div>

@@ -38,8 +38,8 @@ export default function AwardsPage() {
   const badges = [
     { name: "First Step", desc: "Log your first reading", target: 1, current: currentLogs, isUnlocked: currentLogs >= 1 },
     { name: "Week of Light", desc: "Maintain a 7-day streak", target: 7, current: currentStreak, isUnlocked: currentStreak >= 7 },
-    { name: "Consistent Servant", desc: "Reach a 15-day streak", target: 15, current: currentStreak, isUnlocked: currentStreak >= 30 },
-    { name: "Ramadan Warrior", desc: "Log 30 unique sessions", target: 30, current: currentLogs, isUnlocked: currentLogs >= 30 },
+    { name: "Consistent Servant", desc: "Reach a 30-day -streak", target: 30, current: currentStreak, isUnlocked: currentStreak >= 30 },
+    { name: "Ramadan Warrior", desc: "Log 60 unique sessions", target: 60, current: currentLogs, isUnlocked: currentLogs >= 60 },
   ];
 
   if (loading) return (
