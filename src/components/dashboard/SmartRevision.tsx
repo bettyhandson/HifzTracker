@@ -89,29 +89,35 @@ export default function SmartRevision({ userId }: { userId: string | null }) {
     fetchHistory();
   }, [userId]);
 
-  const handleShare = async () => {
-  const status = retentionScore >= 90 ? "Excellent ✅" : retentionScore >= 70 ? "Good 📈" : "Needs Focus ⚠️";
-  const text = `📖 *HifzTracker Progress Report*\n\n🏆 Retention Score: ${retentionScore}%\n📊 Status: ${status}\n📚 Surahs Tracked: ${totalTracked}\n\nJoin me on HifzTracker to master your Quranic consistency!\n🔗 https://optimistcx.space`;
+ const handleShare = async () => {
+    const status = retentionScore >= 90 ? "Excellent ✅" : retentionScore >= 70 ? "Good 📈" : "Needs Focus ⚠️";
+    const text = `📖 *HifzTracker Progress Report*\n\n🏆 Retention Score: ${retentionScore}%\n📊 Status: ${status}\n📚 Surahs Tracked: ${totalTracked}\n\nJoin me on HifzTracker to master your Quranic consistency!\n🔗 https://optimistcx.space`;
 
-  try {
-    // 1. Try native mobile share first
-    if (navigator.share) {
-      await navigator.share({ title: 'My Hifz Progress', text: text });
-    } 
-    // 2. Fallback to clipboard (only works on HTTPS or localhost)
-    else if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied! Share it in your WhatsApp group.");
-    } 
-    // 3. Last resort fallback for non-secure HTTP connections
-    else {
-      throw new Error("Clipboard unavailable");
+    try {
+      // 1. Try native mobile share first
+      if (navigator.share) {
+        await navigator.share({ title: 'My Hifz Progress', text: text });
+      } 
+      // 2. Fallback to clipboard
+      else if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        toast.success("Copied to clipboard!");
+      } 
+      else {
+        throw new Error("ShareMethodUnsupported");
+      }
+    } catch (err) {
+      // Ignore the error if the user manually cancelled/dismissed the share sheet
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log("Share dismissed by user");
+        return; 
+      }
+
+      // Handle actual technical failures
+      console.error("Share failed:", err);
+      toast.error("Unable to share at this time");
     }
-  } catch (err) {
-    console.error("Share failed:", err);
-    toast.error("");
-  }
-};
+  };
 
   if (loading) return null;
 
