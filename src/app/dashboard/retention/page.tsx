@@ -204,7 +204,7 @@ export default function RetentionPage({ userId }: { userId: string | null }) {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 px-2">
                   <Info className="h-3 w-3 text-emerald-500" />
-                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">How the Engine v2.0 Works</p>
+                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">How the Engine Works</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
