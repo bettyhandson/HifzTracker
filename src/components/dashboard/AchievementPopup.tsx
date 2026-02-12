@@ -1,10 +1,40 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, X, Share2, Sparkles } from 'lucide-react';
+import { Trophy, Share2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function AchievementPopup({ isOpen, onClose, streak }: { isOpen: boolean, onClose: () => void, streak: number }) {
+interface AchievementPopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+  streak: number;
+}
+
+export default function AchievementPopup({ isOpen, onClose, streak }: AchievementPopupProps) {
+  
+  // 1. Logic to handle Sharing
+  const handleShare = async () => {
+    const shareData = {
+      title: 'HifzTracker Achievement',
+      text: `I just reached a ${streak} day streak on my Hifz journey! Jazakumullahu Khayran.`,
+      url: window.location.origin,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+        alert("Achievement link copied to clipboard!");
+      }
+      // After sharing, we trigger onClose to mark this achievement as seen
+      onClose();
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -31,10 +61,17 @@ export default function AchievementPopup({ isOpen, onClose, streak }: { isOpen: 
               </p>
 
               <div className="space-y-3">
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 py-6 rounded-2xl font-bold gap-2">
+                <Button 
+                  onClick={handleShare}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 py-6 rounded-2xl font-bold gap-2"
+                >
                   <Share2 className="h-4 w-4" /> Share Achievement
                 </Button>
-                <Button variant="ghost" onClick={onClose} className="w-full text-slate-500 hover:text-white">
+                <Button 
+                  variant="ghost" 
+                  onClick={onClose} 
+                  className="w-full text-slate-500 hover:text-white"
+                >
                   Continue Journey
                 </Button>
               </div>

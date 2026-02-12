@@ -61,10 +61,22 @@ export default function ProfileSettings({ profile }: { profile: any }) {
             onChange={(e) => setReciter(e.target.value)}
             className="w-full bg-[#0a0a0a] border border-white/10 text-white h-12 rounded-xl px-3 outline-none focus:ring-2 focus:ring-emerald-500"
           >
+         {/* Popular Global Reciters */}
             <option value="ar.alafasy">Mishary Rashid Alafasy</option>
+            <option value="ar.abdulsamad">AbdulBaset AbdulSamad (Murattal)</option>
+            <option value="ar.abdullahbasfar">Abdullah Basfar</option>
+            <option value="ar.abdurrahmaansudais">Abdurrahmaan As-Sudais</option>
+
+            {/* Classic Egyptian Masters */}
             <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
-            <option value="ar.minshawi">Mohamed Siddiq El-Minshawi</option>
-            <option value="ar.abdulsamad">AbdulBaset AbdulSamad</option>
+            <option value="ar.husarymujawwad">Mahmoud Khalil Al-Husary (Mujawwad)</option>
+            <option value="ar.minshawimujawwad">Mohamed Siddiq El-Minshawi (Mujawwad)</option>
+
+            {/* Meditative & Calm Styles */}
+            <option value="ar.hanirifai">Hani ar-Rifai</option>
+            <option value="ar.hudhaify">Ali Hudhaify</option>
+            <option value="ar.saoodshuraym">Sa'ud ash-Shuraym</option>
+            <option value="ar.mahermuaiqly">Maher Al-Muaiqly</option>
           </select>
         </div>
 

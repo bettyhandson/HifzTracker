@@ -23,16 +23,37 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const [playbackRate, setRate] = useState(1);
   const [repeatCount, setRepeatCount] = useState(0); 
   const currentRepeatRef = useRef(0);
+  
+  // Primary audio player
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Preloader to fetch the NEXT ayah ahead of time
+  const preloaderRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const audio = new Audio();
-      audio.preload = "auto";
-      audio.setAttribute('playsinline', 'true'); // Required for iOS PWA
+      const preloader = new Audio();
+      
+      [audio, preloader].forEach(el => {
+        el.preload = "auto";
+        el.setAttribute('playsinline', 'true');
+        el.setAttribute('webkit-playsinline', 'true');
+      });
+
       audioRef.current = audio;
+      preloaderRef.current = preloader;
     }
   }, []);
+
+  // Professional Suggestion: Preload the next URL
+  const preloadNext = (index: number, ayahs: any[], reciter: string) => {
+    const nextIndex = index + 1;
+    if (nextIndex < ayahs.length && preloaderRef.current) {
+      const nextAyah = ayahs[nextIndex];
+      preloaderRef.current.src = `https://cdn.islamic.network/quran/audio/64/${reciter}/${nextAyah.number}.mp3`;
+      preloaderRef.current.load();
+    }
+  };
 
   const playAyah = async (index: number, ayahs: any[], reciter: string) => {
     if (!audioRef.current || !ayahs[index]) return;
@@ -40,28 +61,36 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     const ayah = ayahs[index];
     const audioUrl = `https://cdn.islamic.network/quran/audio/64/${reciter}/${ayah.number}.mp3`;
 
+    // Reset listener to prevent memory leaks and double triggers
     audioRef.current.onended = null;
 
     try {
-      audioRef.current.pause();
-      audioRef.current.src = audioUrl;
-      audioRef.current.load();
-      audioRef.current.playbackRate = playbackRate;
+      // Logic for seamless transition
+      if (audioRef.current.src !== audioUrl) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.load();
+      }
       
+      audioRef.current.playbackRate = playbackRate;
       setPlaylist(ayahs);
       setActiveAyahIndex(index);
 
-      await audioRef.current.play(); // 🚀 Critical for iOS
+      // Critical for iOS: We must wait for the play promise
+      await audioRef.current.play();
       setIsPlaying(true);
+
+      // Start preloading the NEXT ayah immediately after current starts playing
+      preloadNext(index, ayahs, reciter);
 
       audioRef.current.onended = () => {
         if (currentRepeatRef.current < repeatCount) {
           currentRepeatRef.current += 1;
-          audioRef.current?.play();
+          audioRef.current?.play().catch(console.error);
         } else {
           currentRepeatRef.current = 0;
           if (index < ayahs.length - 1) {
-            playAyah(index + 1, ayahs, reciter); // 🚀 Automatic transition
+            // Instant transition to next index
+            playAyah(index + 1, ayahs, reciter);
           } else {
             setIsPlaying(false);
             setActiveAyahIndex(null);
@@ -69,6 +98,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         }
       };
     } catch (err: any) {
+      console.error("Audio playback failed:", err);
       if (err.name !== 'AbortError') setIsPlaying(false);
     }
   };
@@ -79,8 +109,13 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().catch(() => {});
-      setIsPlaying(true);
+      // iOS requires the play to be directly triggered by user action
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      }
     }
   };
 
