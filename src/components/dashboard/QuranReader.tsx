@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAudio } from '@/context/AudioContext';
-import { Play, Pause, Repeat1, Gauge, ChevronDown, BookOpen, ClipboardList } from 'lucide-react'; // 🚀 Added ClipboardList
+import { Play, Pause, Repeat1, Gauge, ChevronDown, BookOpen, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from "sonner"; // For feedback
+import { toast } from "sonner";
 
 export default function QuranReader({ userId }: { userId: string }) {
   const router = useRouter();
@@ -16,49 +16,47 @@ export default function QuranReader({ userId }: { userId: string }) {
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
   const [ayahs, setAyahs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [preferredReciter, setPreferredReciter] = useState('ar.alafasy');
+  const [preferredReciter, setPreferredReciter] = useState('Minshawy_Teacher');
   
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // 🚀 Logic to Log Progress
-const logProgress = async () => {
-  const surahName = surahs.find(s => s.number === selectedSurah)?.englishName || `Surah ${selectedSurah}`;
-  
-  // 🟢 Match your table columns EXACTLY
-  const logData = {
-    // Only include user_id if you added it to the DB in the step above!
-    user_id: userId, 
-    surah_number: selectedSurah,
-    ayah_start: 1,
-    ayah_end: ayahs.length,
-  };
+  const logProgress = async () => {
+    const surahName = surahs.find(s => s.number === selectedSurah)?.englishName || `Surah ${selectedSurah}`;
+    const logData = {
+      user_id: userId, 
+      surah_number: selectedSurah,
+      ayah_start: 1,
+      ayah_end: ayahs.length,
+    };
 
-  if (userId && userId !== 'guest') {
-    const { error } = await supabase
-      .from('progress_logs')
-      .insert([logData]);
-    
-    if (error) {
-      // Use error.message to see the actual text error
-      console.error("Supabase Error:", error.message);
-      toast.error(`Error: ${error.message}`);
+    if (userId && userId !== 'guest') {
+      const { error } = await supabase.from('progress_logs').insert([logData]);
+      if (error) {
+        console.error("Supabase Error:", error.message);
+        toast.error(`Error: ${error.message}`);
+      } else {
+        toast.success(`Progress logged: ${surahName}`);
+      }
     } else {
-      toast.success(`Progress logged: ${surahName}`);
+      const localLogs = JSON.parse(localStorage.getItem('hifz_progress_logs') || '[]');
+      localLogs.push({ ...logData, created_at: new Date().toISOString() });
+      localStorage.setItem('hifz_progress_logs', JSON.stringify(localLogs));
+      toast.success(`${surahName} saved locally!`);
     }
-  } else {
-    // Guest logic...
-    const localLogs = JSON.parse(localStorage.getItem('hifz_progress_logs') || '[]');
-    localLogs.push({ ...logData, created_at: new Date().toISOString() });
-    localStorage.setItem('hifz_progress_logs', JSON.stringify(localLogs));
-    toast.success(`${surahName} saved locally!`);
-  }
-};
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!userId || userId === 'guest') return;
-      const { data } = await supabase.from('profiles').select('preferred_reciter').eq('id', userId).single();
-      if (data?.preferred_reciter) setPreferredReciter(data.preferred_reciter);
+      const { data } = await supabase
+        .from('profiles')
+        .select('preferred_reciter')
+        .eq('id', userId)
+        .single();
+      
+      if (data?.preferred_reciter) {
+        setPreferredReciter(data.preferred_reciter);
+      }
     };
     fetchProfile();
   }, [userId]);
@@ -73,21 +71,20 @@ const logProgress = async () => {
       .then(res => res.json())
       .then(data => {
         const combined = data.data[0].ayahs.map((v: any, i: number) => ({
-          ...v, translation: data.data[1].ayahs[i].text
+          ...v, 
+          translation: data.data[1].ayahs[i].text,
+          surahNumber: selectedSurah,
+          numberInSurah: v.numberInSurah
         }));
         setAyahs(combined);
         setLoading(false);
       });
   }, [selectedSurah]);
 
-  // 🚀 Enhanced Auto-Scroll & Auto-Log
   useEffect(() => {
     if (activeAyahIndex !== null) {
       ayahRefs.current[activeAyahIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      
-      // Auto-log when the last Ayah of the Surah finishes
       if (activeAyahIndex === ayahs.length - 1 && !isPlaying) {
-         // This triggers when the 'onended' in AudioContext finishes the last item
          logProgress();
       }
     }
@@ -95,30 +92,14 @@ const logProgress = async () => {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col z-0">
-      
-      {/* 🟢 THE HEADER */}
       <div className="flex-none p-4 border-b border-white/5 bg-[#0a0a0a]/95 backdrop-blur-xl z-50 flex items-center justify-between">
-        
         <div className="flex items-center gap-2">
-          {/* Dashboard Icon */}
-          <Button 
-            variant="ghost" size="icon" 
-            onClick={() => router.push('/dashboard')}
-            className="text-emerald-500 bg-emerald-500/10 rounded-xl h-10 w-10 border border-emerald-500/20"
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')} className="text-emerald-500 bg-emerald-500/10 rounded-xl h-10 w-10 border border-emerald-500/20">
             <BookOpen className="h-5 w-5" />
           </Button>
-
-          {/* 🚀 New Log Progress Icon */}
-          <Button 
-            variant="ghost" size="icon" 
-            onClick={logProgress}
-            className="text-amber-500 bg-amber-500/10 rounded-xl h-10 w-10 border border-amber-500/20"
-          >
+          <Button variant="ghost" size="icon" onClick={logProgress} className="text-amber-500 bg-amber-500/10 rounded-xl h-10 w-10 border border-amber-500/20">
             <ClipboardList className="h-5 w-5" />
           </Button>
-
-          {/* Surah Selector */}
           <div className="relative">
              <select 
               value={selectedSurah} 
@@ -132,20 +113,15 @@ const logProgress = async () => {
         </div>
 
         <div className="flex items-center gap-1">
-          <Button 
-            onClick={() => isPlaying ? toggleAudio() : playAyah(activeAyahIndex ?? 0, ayahs, preferredReciter)}
-            variant="ghost" size="icon" className="text-emerald-500 bg-emerald-500/10 rounded-full h-10 w-10 mr-1"
-          >
+          <Button onClick={() => isPlaying ? toggleAudio() : playAyah(activeAyahIndex ?? 0, ayahs, preferredReciter)} variant="ghost" size="icon" className="text-emerald-500 bg-emerald-500/10 rounded-full h-10 w-10 mr-1">
             {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
           </Button>
-
           <div className="relative">
             <Button variant="ghost" size="icon" className="text-slate-400 h-10 w-10"><Gauge className="h-5 w-5" /></Button>
             <select value={playbackRate} onChange={(e) => setRate(Number(e.target.value))} className="absolute inset-0 opacity-0 cursor-pointer">
               {[0.5, 1, 1.5, 2].map(r => <option key={r} value={r} className="bg-black">{r}x</option>)}
             </select>
           </div>
-
           <div className="relative">
             <Button variant="ghost" size="icon" className={`${repeatCount > 0 ? 'text-emerald-500' : 'text-slate-400'} h-10 w-10`}>
               <Repeat1 className="h-5 w-5" />
@@ -157,7 +133,6 @@ const logProgress = async () => {
         </div>
       </div>
 
-      {/* --- Native Scroll Feed --- */}
       <div className="flex-1 overflow-y-auto touch-auto px-4 py-6 scroll-smooth">
         {loading ? (
           <div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div></div>

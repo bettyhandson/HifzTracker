@@ -9,7 +9,8 @@ import { CheckCircle2, CloudSync } from "lucide-react";
 
 export default function ProfileSettings({ profile }: { profile: any }) {
   const [fullName, setFullName] = useState(profile?.full_name || '');
-  const [reciter, setReciter] = useState(profile?.preferred_reciter || 'ar.alafasy');
+  // Updated default to the Father/Son reciter ID
+  const [reciter, setReciter] = useState(profile?.preferred_reciter || 'Minshawy_Teacher');
   const [goal, setGoal] = useState(profile?.daily_goal_ayahs || 10);
   const [loading, setLoading] = useState(false);
 
@@ -17,14 +18,12 @@ export default function ProfileSettings({ profile }: { profile: any }) {
     e.preventDefault();
     setLoading(true);
 
-    // 🚀 Logic for Guest User: Implement the requested Popup
     if (profile?.isGuest) {
       alert("Jazakumullahu Khayran! To save your preferred reciter and daily goals permanently across all devices, please create a free account.");
       setLoading(false);
       return;
     }
 
-    // 🚀 Standard Logic for Registered User
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -61,22 +60,19 @@ export default function ProfileSettings({ profile }: { profile: any }) {
             onChange={(e) => setReciter(e.target.value)}
             className="w-full bg-[#0a0a0a] border border-white/10 text-white h-12 rounded-xl px-3 outline-none focus:ring-2 focus:ring-emerald-500"
           >
-         {/* Popular Global Reciters */}
-            <option value="ar.alafasy">Mishary Rashid Alafasy</option>
-            <option value="ar.abdulsamad">AbdulBaset AbdulSamad (Murattal)</option>
-            <option value="ar.abdullahbasfar">Abdullah Basfar</option>
-            <option value="ar.abdurrahmaansudais">Abdurrahmaan As-Sudais</option>
+            {/* EveryAyah Compatible Reciters */}
+            <optgroup label="Hifz & Teacher Styles">
+              <option value="Minshawy_Teacher_128kbps">Minshawi (Father & Son Repeat)</option>
+              <option value="Husary_Muallim_128kbps">Mahmoud Khalil Al-Husary (Muallim)</option>
+            </optgroup>
 
-            {/* Classic Egyptian Masters */}
-            <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
-            <option value="ar.husarymujawwad">Mahmoud Khalil Al-Husary (Mujawwad)</option>
-            <option value="ar.minshawimujawwad">Mohamed Siddiq El-Minshawi (Mujawwad)</option>
-
-            {/* Meditative & Calm Styles */}
-            <option value="ar.hanirifai">Hani ar-Rifai</option>
-            <option value="ar.hudhaify">Ali Hudhaify</option>
-            <option value="ar.saoodshuraym">Sa'ud ash-Shuraym</option>
-            <option value="ar.mahermuaiqly">Maher Al-Muaiqly</option>
+            <optgroup label="Popular Global Reciters">
+              <option value="ar.alafasy">Mishary Rashid Alafasy</option>
+              <option value="ar.abdulsamad">AbdulBaset AbdulSamad</option>
+              <option value="ar.abdullahbasfar">Abdullah Basfar</option>
+              <option value="ar.abdurrahmaansudais">Abdurrahmaan As-Sudais</option>
+              <option value="ar.mahermuaiqly">Maher Al-Muaiqly</option>
+            </optgroup>
           </select>
         </div>
 
