@@ -40,26 +40,59 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
       audioRef.current = audio;
       preloaderRef.current = preloader;
+
+      // Ensure audio continues when tab is minimized or screen is locked
+      const handleVisibilityChange = () => {
+        if (document.hidden && isPlaying) {
+          audioRef.current?.play().catch(() => {});
+        }
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
-  }, []);
+  }, [isPlaying]);
+
+  /**
+   * Updates Lock Screen Metadata (Media Session API)
+   * This allows background playback and control from the lock screen.
+   */
+  const updateMediaSession = (ayah: any, reciter: string) => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: `Ayah ${ayah.numberInSurah}`,
+        artist: reciter.split('.').pop()?.replace('_', ' ') || 'Quran Reciter',
+        album: `Surah ${ayah.surahNumber || 'Quran'}`,
+        artwork: [
+          { src: 'https://cdn.islamic.network/quran/images/7.png', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => toggleAudio());
+      navigator.mediaSession.setActionHandler('pause', () => toggleAudio());
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (activeAyahIndex !== null && activeAyahIndex < playlist.length - 1) {
+          playAyah(activeAyahIndex + 1, playlist, reciter);
+        }
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (activeAyahIndex !== null && activeAyahIndex > 0) {
+          playAyah(activeAyahIndex - 1, playlist, reciter);
+        }
+      });
+    }
+  };
 
   const getAudioUrl = (reciter: string, ayah: any) => {
     const surahNum = String(ayah.surah?.number || ayah.surahNumber || 1).padStart(3, '0');
     const ayahInSurahNum = String(ayah.numberInSurah || 1).padStart(3, '0');
     const fileId = `${surahNum}${ayahInSurahNum}`;
 
-    // Broadened mapping to handle both UI names and Supabase IDs
     const everyAyahMapping: { [key: string]: string } = {
-      // Guest/UI Names
       'Minshawy_Teacher': 'Minshawy_Teacher_128kbps',
       'Husary_Muallim_128kbps': 'Husary_Muallim_128kbps',
       'Alafasy_128kbps': 'Alafasy_128kbps',
-
-      // --- Multi-Language Reciters (EveryAyah folders) ---
-      // These keys MUST match the values in your ProfileSettings select menu
       'ar.english.basfar': 'MultiLanguage/Basfar_Walk_192kbps', 
-      
-      // Supabase API IDs
       'ar.minshawi.teacher': 'Minshawy_Teacher_128kbps',
       'ar.husary.muallim': 'Husary_Muallim_128kbps',
       'ar.alafasy': 'Alafasy_128kbps',
@@ -78,7 +111,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     if (nextIndex < ayahs.length && preloaderRef.current) {
       const nextUrl = getAudioUrl(reciter, ayahs[nextIndex]);
       preloaderRef.current.src = nextUrl;
-      preloaderRef.current.load(); // Forces the browser to start buffering the next file
+      preloaderRef.current.load();
     }
   };
 
@@ -86,16 +119,10 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     if (!audioRef.current || !ayahs[index]) return;
 
     const audioUrl = getAudioUrl(reciter, ayahs[index]);
-
-    // Cleanup old listener
     audioRef.current.onended = null;
 
     try {
-      // Logic for gapless transition: if the preloader already has this URL, we swap it
-      if (preloaderRef.current && preloaderRef.current.src === audioUrl) {
-         // Move the pre-buffered source into the main player
-         audioRef.current.src = audioUrl;
-      } else if (audioRef.current.src !== audioUrl) {
+      if (audioRef.current.src !== audioUrl) {
         audioRef.current.src = audioUrl;
         audioRef.current.load();
       }
@@ -106,8 +133,10 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
       await audioRef.current.play();
       setIsPlaying(true);
-
-      // Immediately buffer the next one while this one is playing
+      
+      // Update Lock Screen and Background Info
+      updateMediaSession(ayahs[index], reciter);
+      
       preloadNext(index, ayahs, reciter);
 
       audioRef.current.onended = () => {
@@ -117,7 +146,6 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           currentRepeatRef.current = 0;
           if (index < ayahs.length - 1) {
-            // Because we used preloadNext, the next playAyah call will be nearly instant
             playAyah(index + 1, ayahs, reciter);
           } else {
             setIsPlaying(false);
