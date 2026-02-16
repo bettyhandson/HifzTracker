@@ -66,6 +66,10 @@ export default function ProfileSettings({ profile }: { profile: any }) {
               <option value="Husary_Muallim_128kbps">Mahmoud Khalil Al-Husary (Muallim)</option>
             </optgroup>
 
+            <optgroup label="Multi-language Styles">
+              <option value="ar.english.basfar">Basfar + English (Translation)</option>
+            </optgroup>
+
             <optgroup label="Popular Global Reciters">
               <option value="ar.alafasy">Mishary Rashid Alafasy</option>
               <option value="ar.abdulsamad">AbdulBaset AbdulSamad</option>

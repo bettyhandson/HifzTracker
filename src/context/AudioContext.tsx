@@ -46,9 +46,19 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     const ayahInSurahNum = String(ayah.numberInSurah || 1).padStart(3, '0');
     const fileId = `${surahNum}${ayahInSurahNum}`;
 
-    // Precise mapping for EveryAyah directories
+    // Broadened mapping to handle both UI names and Supabase IDs
     const everyAyahMapping: { [key: string]: string } = {
+      // Guest/UI Names
       'Minshawy_Teacher': 'Minshawy_Teacher_128kbps',
+      'Husary_Muallim_128kbps': 'Husary_Muallim_128kbps',
+      'Alafasy_128kbps': 'Alafasy_128kbps',
+
+      // --- Multi-Language Reciters (EveryAyah folders) ---
+      // These keys MUST match the values in your ProfileSettings select menu
+      'ar.english.basfar': 'MultiLanguage/Basfar_Walk_192kbps', 
+      
+      // Supabase API IDs
+      'ar.minshawi.teacher': 'Minshawy_Teacher_128kbps',
       'ar.husary.muallim': 'Husary_Muallim_128kbps',
       'ar.alafasy': 'Alafasy_128kbps',
       'ar.abdulsamad': 'Abdul_Basit_Murattal_192kbps',
@@ -57,12 +67,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       'ar.mahermuaiqly': 'Maher_AlMuaiqly_64kbps'
     };
 
-    if (everyAyahMapping[reciter]) {
-      return `https://www.everyayah.com/data/${everyAyahMapping[reciter]}/${fileId}.mp3`;
-    }
-
-    // Fallback for standard API reciters
-    return `https://cdn.islamic.network/quran/audio/128/${reciter}/${ayah.number}.mp3`;
+    const folder = everyAyahMapping[reciter] || 'Minshawy_Teacher_128kbps';
+    return `https://www.everyayah.com/data/${folder}/${fileId}.mp3`;
   };
 
   const preloadNext = (index: number, ayahs: any[], reciter: string) => {
