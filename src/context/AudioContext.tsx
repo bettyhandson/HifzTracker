@@ -31,11 +31,13 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     if (typeof window !== 'undefined') {
       const audio = new Audio();
       const preloader = new Audio();
+      
       [audio, preloader].forEach(el => {
         el.preload = "auto";
         el.setAttribute('playsinline', 'true');
         el.setAttribute('webkit-playsinline', 'true');
       });
+
       audioRef.current = audio;
       preloaderRef.current = preloader;
     }
@@ -74,8 +76,9 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const preloadNext = (index: number, ayahs: any[], reciter: string) => {
     const nextIndex = index + 1;
     if (nextIndex < ayahs.length && preloaderRef.current) {
-      preloaderRef.current.src = getAudioUrl(reciter, ayahs[nextIndex]);
-      preloaderRef.current.load();
+      const nextUrl = getAudioUrl(reciter, ayahs[nextIndex]);
+      preloaderRef.current.src = nextUrl;
+      preloaderRef.current.load(); // Forces the browser to start buffering the next file
     }
   };
 
@@ -83,10 +86,16 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     if (!audioRef.current || !ayahs[index]) return;
 
     const audioUrl = getAudioUrl(reciter, ayahs[index]);
+
+    // Cleanup old listener
     audioRef.current.onended = null;
 
     try {
-      if (audioRef.current.src !== audioUrl) {
+      // Logic for gapless transition: if the preloader already has this URL, we swap it
+      if (preloaderRef.current && preloaderRef.current.src === audioUrl) {
+         // Move the pre-buffered source into the main player
+         audioRef.current.src = audioUrl;
+      } else if (audioRef.current.src !== audioUrl) {
         audioRef.current.src = audioUrl;
         audioRef.current.load();
       }
@@ -97,6 +106,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
       await audioRef.current.play();
       setIsPlaying(true);
+
+      // Immediately buffer the next one while this one is playing
       preloadNext(index, ayahs, reciter);
 
       audioRef.current.onended = () => {
@@ -106,6 +117,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           currentRepeatRef.current = 0;
           if (index < ayahs.length - 1) {
+            // Because we used preloadNext, the next playAyah call will be nearly instant
             playAyah(index + 1, ayahs, reciter);
           } else {
             setIsPlaying(false);
