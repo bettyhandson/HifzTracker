@@ -3,22 +3,24 @@ self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
-});
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  
+  const options = {
+    body: data.body || "Don't forget your daily Hifz today!",
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    vibrate: [100, 50, 100],
+    // 🚀 This tells the OS to use the default notification sound
+    silent: false,
+    data: {
+      url: data.url || '/dashboard'
+    }
+  };
 
-// 🚀 CRITICAL: The Bypass Logic for iOS PWA Audio (MAINTAINED)
-self.addEventListener('fetch', (event) => {
-  const url = event.request.url;
-  if (
-    url.includes('islamic.network') || 
-    url.includes('aladhan.com') || 
-    url.includes('alquran.cloud') || 
-    url.includes('hisnmuslim.com') ||
-    url.includes('everyayah.com') // Added this to protect your new reciter source
-  ) {
-    return; 
-  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "HifzTracker", options)
+  );
 });
 
 // 🚀 NEW: Handle Remote Push Notifications (Android & iOS 16.4+)

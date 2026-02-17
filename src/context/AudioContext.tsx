@@ -27,6 +27,13 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const preloaderRef = useRef<HTMLAudioElement | null>(null);
 
+  // Use a ref for the latest state to access inside the onended listener
+  const stateRef = useRef({ activeAyahIndex, playlist, repeatCount, isPlaying });
+
+  useEffect(() => {
+    stateRef.current = { activeAyahIndex, playlist, repeatCount, isPlaying };
+  }, [activeAyahIndex, playlist, repeatCount, isPlaying]);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const audio = new Audio();
@@ -41,9 +48,31 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       audioRef.current = audio;
       preloaderRef.current = preloader;
 
-      // Ensure audio continues when tab is minimized or screen is locked
+      // Handle the transition automatically inside the Audio object listener
+      // This is more reliable in the background than React state-driven triggers
+      audio.onended = () => {
+        const { activeAyahIndex: currentIndex, playlist: currentList, repeatCount: currentRepeat, isPlaying: wasPlaying } = stateRef.current;
+        
+        if (!wasPlaying || currentIndex === null) return;
+
+        if (currentRepeatRef.current < currentRepeat) {
+          currentRepeatRef.current += 1;
+          audio.play().catch(() => {});
+        } else {
+          currentRepeatRef.current = 0;
+          const nextIndex = currentIndex + 1;
+          if (nextIndex < currentList.length) {
+            // Trigger next ayah immediately
+            playAyah(nextIndex, currentList, (audio as any).currentReciter);
+          } else {
+            setIsPlaying(false);
+            setActiveAyahIndex(null);
+          }
+        }
+      };
+
       const handleVisibilityChange = () => {
-        if (document.hidden && isPlaying) {
+        if (document.hidden && stateRef.current.isPlaying) {
           audioRef.current?.play().catch(() => {});
         }
       };
@@ -51,12 +80,8 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
       document.addEventListener('visibilitychange', handleVisibilityChange);
       return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
-  }, [isPlaying]);
+  }, []);
 
-  /**
-   * Updates Lock Screen Metadata (Media Session API)
-   * This allows background playback and control from the lock screen.
-   */
   const updateMediaSession = (ayah: any, reciter: string) => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -64,20 +89,23 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         artist: reciter.split('.').pop()?.replace('_', ' ') || 'Quran Reciter',
         album: `Surah ${ayah.surahNumber || 'Quran'}`,
         artwork: [
-          { src: 'https://cdn.islamic.network/quran/images/7.png', sizes: '512x512', type: 'image/png' }
+          { src: '/favicon.ico', sizes: '192x192', type: 'image/x-icon' },
+          { src: 'https://static.quran.com/images/logo.png', sizes: '512x512', type: 'image/png' }
         ]
       });
 
       navigator.mediaSession.setActionHandler('play', () => toggleAudio());
       navigator.mediaSession.setActionHandler('pause', () => toggleAudio());
       navigator.mediaSession.setActionHandler('nexttrack', () => {
-        if (activeAyahIndex !== null && activeAyahIndex < playlist.length - 1) {
-          playAyah(activeAyahIndex + 1, playlist, reciter);
+        const { activeAyahIndex: idx, playlist: list } = stateRef.current;
+        if (idx !== null && idx < list.length - 1) {
+          playAyah(idx + 1, list, reciter);
         }
       });
       navigator.mediaSession.setActionHandler('previoustrack', () => {
-        if (activeAyahIndex !== null && activeAyahIndex > 0) {
-          playAyah(activeAyahIndex - 1, playlist, reciter);
+        const { activeAyahIndex: idx, playlist: list } = stateRef.current;
+        if (idx !== null && idx > 0) {
+          playAyah(idx - 1, list, reciter);
         }
       });
     }
@@ -119,40 +147,37 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     if (!audioRef.current || !ayahs[index]) return;
 
     const audioUrl = getAudioUrl(reciter, ayahs[index]);
-    audioRef.current.onended = null;
+    
+    // Store reciter on the audio object so the onended listener can access it
+    (audioRef.current as any).currentReciter = reciter;
 
     try {
       if (audioRef.current.src !== audioUrl) {
+        audioRef.current.pause();
         audioRef.current.src = audioUrl;
         audioRef.current.load();
       }
       
       audioRef.current.playbackRate = playbackRate;
+      
+      // Update states
       setPlaylist(ayahs);
       setActiveAyahIndex(index);
-
-      await audioRef.current.play();
       setIsPlaying(true);
-      
-      // Update Lock Screen and Background Info
-      updateMediaSession(ayahs[index], reciter);
-      
-      preloadNext(index, ayahs, reciter);
 
-      audioRef.current.onended = () => {
-        if (currentRepeatRef.current < repeatCount) {
-          currentRepeatRef.current += 1;
-          audioRef.current?.play().catch(console.error);
-        } else {
-          currentRepeatRef.current = 0;
-          if (index < ayahs.length - 1) {
-            playAyah(index + 1, ayahs, reciter);
-          } else {
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          updateMediaSession(ayahs[index], reciter);
+          preloadNext(index, ayahs, reciter);
+        }).catch(error => {
+          if (error.name !== 'AbortError') {
+            console.error("Playback failed:", error);
             setIsPlaying(false);
-            setActiveAyahIndex(null);
           }
-        }
-      };
+        });
+      }
     } catch (err: any) {
       console.error("Audio playback failed:", err);
       setIsPlaying(false);
@@ -161,7 +186,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
   const toggleAudio = () => {
     if (!audioRef.current) return;
-    if (isPlaying) {
+    if (stateRef.current.isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
