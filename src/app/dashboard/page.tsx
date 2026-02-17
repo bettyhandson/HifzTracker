@@ -93,11 +93,11 @@ export default function DashboardPage() {
   return (
     <DashboardShell>
       {/* 🚀 The Blocker UI: Shows if a session is active */}
-      <FocusShield 
-        isActive={!!activeSession} 
-        targetGoal={activeSession?.target_goal || "your daily portion"} 
-      />
-
+   <FocusShield 
+  isActive={!!activeSession} 
+  targetGoal={activeSession?.target_goal || "your daily portion"} 
+  endTime={activeSession?.end_time} // 🚀 Pass the timestamp here
+/>
       <div className="max-w-5xl mx-auto space-y-10">
         <header className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold text-white">

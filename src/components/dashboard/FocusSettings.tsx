@@ -37,7 +37,7 @@ export default function FocusSettings({ userId }: { userId: string }) {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Ihsan Mode Activated! Focus on your Hifz.");
+      toast.success("Hifz Mode Activated! Focus on your Hifz.");
       // Redirect back to dashboard to trigger the shield
       window.location.href = '/dashboard';
     }
@@ -51,7 +51,7 @@ export default function FocusSettings({ userId }: { userId: string }) {
           <ShieldAlert className="h-5 w-5 text-emerald-500" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-white">Activate Ihsan Mode</h3>
+          <h3 className="text-lg font-bold text-white">Activate Hifz Mode</h3>
           <p className="text-xs text-slate-500">Lock distractions until your goal is met.</p>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function FocusSettings({ userId }: { userId: string }) {
           <Label className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Your Goal for this session</Label>
           <input 
             type="text"
-            placeholder="e.g., Memorize 5 Ayahs of Surah Mulk"
+            placeholder="e.g., 5 Ayahs of Surah Mulk"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
             className="w-full bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
