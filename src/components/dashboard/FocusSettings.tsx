@@ -51,7 +51,7 @@ export default function FocusSettings({ userId }: { userId: string }) {
           <ShieldAlert className="h-5 w-5 text-emerald-500" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-white">Activate Hifz Mode</h3>
+          <h3 className="text-lg font-bold text-white">Activate Ihsan Mode</h3>
           <p className="text-xs text-slate-500">Lock distractions until your goal is met.</p>
         </div>
       </div>

@@ -20,7 +20,7 @@ export default function FocusShield({ isActive, targetGoal }: { isActive: boolea
       
       <p className="text-gray-400 max-w-xs mb-10 leading-relaxed">
         You committed to reciting <span className="text-emerald-400 font-bold">{targetGoal}</span>. 
-        Finish your portion to unlock your other pages.
+        Finish your portion to unlock your other apps.
       </p>
 
       <Button 
