@@ -7,6 +7,7 @@ import InstallBanner from '@/components/ui/InstallBanner';
 import { Toaster } from 'sonner';
 import InstallPrompt from "@/components/InstallPrompt"; // 🚀 The new component
 import RefreshHandler from '@/components/RefreshHandler'; // 🚀 Handles pull-to-refresh on mobile
+import OneSignalProvider from '@/components/OneSignalProvider';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -81,8 +82,9 @@ export default function RootLayout({
         <AudioProvider>
           <RefreshHandler /> 
           <InstallBanner /> 
-          
-          {children}
+          <OneSignalProvider>
+          {children}   
+        </OneSignalProvider>
 
           <Toaster position="top-center" richColors />
           
