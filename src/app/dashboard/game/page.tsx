@@ -12,7 +12,7 @@ export default function IslamicGamePage() {
   const router = useRouter()
   const supabase = createClient() // 2. Initialize client
   
-  const startDate = new Date('2026-02-17').getTime();
+  const startDate = new Date('2026-02-18').getTime();
   const today = new Date().getTime();
   const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
   const currentDay = diffDays >= 1 && diffDays <= 30 ? diffDays : 1;
