@@ -151,16 +151,6 @@ export default function ProfileSettings({ profile }: { profile: any }) {
             </>
           )}
         </Button>
-
-        <Button 
-          type="button" 
-          onClick={testNotification} 
-          variant="outline" 
-          className="w-full border-white/5 text-slate-400 hover:bg-white/5 rounded-2xl h-14 font-semibold gap-2 text-sm active:scale-95"
-        >
-          <Bell className="h-4 w-4" />
-          Test Reminder Notification
-        </Button>
       </div>
 
       {/* --- Footer --- */}

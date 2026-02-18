@@ -49,7 +49,7 @@ export default function Hero() {
 
           {/* 3. The Countdown */}
           <div className="w-full mb-12 scale-90 sm:scale-100 transition-transform">
-             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mb-6">Ramadan is Calling</h2>
+             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mb-6">Maximize Every Moment</h2>
              <RamadanCountdown />
           </div>
 

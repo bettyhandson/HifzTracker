@@ -12,7 +12,6 @@ import FocusShield from "@/components/dashboard/FocusShield"; // 🚀 Import the
 import { Loader2, Quote, BellRing, ShieldCheck } from "lucide-react"; 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button'; 
-import { useNotifications } from '@/hooks/useNotifications';
 
 import hadiths from '@/data/hadiths.json'; 
 
@@ -21,8 +20,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<any>(null); // 🚀 Track Ihsan Mode
-
-  const { requestPermission, permissionStatus } = useNotifications(userId || 'guest');
 
   const [dailyHadith, setDailyHadith] = useState({ 
     text: 'Loading spiritual wisdom...', 
@@ -132,25 +129,6 @@ export default function DashboardPage() {
           </Card>
 
           {/* 🚀 Logic to prompt Ihsan Mode or Reminders */}
-          {permissionStatus !== 'granted' ? (
-            <Card className="bg-[#161b22] border border-white/5 p-6 relative overflow-hidden rounded-[2rem] flex flex-col justify-between">
-               <div className="relative z-10 space-y-3">
-                 <div className="h-10 w-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                   <BellRing className="h-5 w-5 text-emerald-500" />
-                 </div>
-                 <div>
-                   <h3 className="text-lg font-bold text-white">Never miss a Day</h3>
-                   <p className="text-gray-400 text-sm">Enable daily reminders to maintain your {profile?.current_streak || 0} day streak.</p>
-                 </div>
-                 <Button 
-                  onClick={() => requestPermission()}
-                  className="w-fit bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-6"
-                 >
-                   Enable Reminders
-                 </Button>
-               </div>
-            </Card>
-          ) : (
             <Card className="bg-gradient-to-br from-slate-900 to-black border border-emerald-500/20 p-6 relative overflow-hidden rounded-[2rem] flex flex-col justify-between">
               <div className="relative z-10 space-y-3">
                 <div className="h-10 w-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
@@ -168,7 +146,6 @@ export default function DashboardPage() {
                 </Button>
               </div>
             </Card>
-          )}
         </div>
 
         {/* Rest of the dashboard components remain the same */}

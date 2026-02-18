@@ -7,6 +7,7 @@ import { BookOpen, LayoutDashboard, Settings, LogOut, Menu, Trophy, Sparkles, He
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from '@/lib/supabase';
+import { motion } from 'framer-motion';
 
 const menuItems = [
   { name: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
@@ -52,33 +53,67 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     e.stopPropagation();
   };
 
-  const CountdownWidget = () => (
+const CountdownWidget = () => {
+  const [ramadanDay, setRamadanDay] = useState(1);
+  const RAMADAN_START_2026 = new Date('2026-02-18T00:00:00');
+
+  useEffect(() => {
+    const calculateDay = () => {
+      const now = new Date();
+      const diffInMs = now.getTime() - RAMADAN_START_2026.getTime();
+      const day = Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
+      setRamadanDay(Math.min(Math.max(day, 1), 30));
+    };
+
+    calculateDay();
+    const timer = setInterval(calculateDay, 3600000); // Check every hour
+    return () => clearInterval(timer);
+  }, []);
+
+  const progressPercentage = (ramadanDay / 30) * 100;
+
+  return (
     <div className="mt-auto px-2 py-4">
-      <div className="bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl p-4 backdrop-blur-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Ramadan 2026</span>
+      <div className="bg-gradient-to-br from-emerald-500/15 to-slate-900/40 border border-emerald-500/30 rounded-2xl p-4 backdrop-blur-md shadow-lg shadow-emerald-500/5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400">
+              Ramadan Kareem
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-500/60 uppercase">
+            Day {ramadanDay}
+          </span>
         </div>
-        <div className="flex justify-between items-center">
-          <div className="text-center">
-            <p className="text-lg font-black text-white leading-none">{timeLeft.days}</p>
-            <p className="text-[9px] text-slate-500 uppercase font-bold">Days</p>
+
+        <div className="space-y-3">
+          <div className="flex items-end justify-between">
+            <h3 className="text-2xl font-black text-white tracking-tight">
+              Day {ramadanDay} <span className="text-xs text-slate-500 font-bold">/ 30</span>
+            </h3>
+            <Sparkles className="h-4 w-4 text-emerald-400 animate-bounce" />
           </div>
-          <div className="text-slate-700 font-bold">:</div>
-          <div className="text-center">
-            <p className="text-lg font-black text-white leading-none">{timeLeft.hours}</p>
-            <p className="text-[9px] text-slate-500 uppercase font-bold">Hrs</p>
-          </div>
-          <div className="text-slate-700 font-bold">:</div>
-          <div className="text-center">
-            <p className="text-lg font-black text-white leading-none">{timeLeft.mins}</p>
-            <p className="text-[9px] text-slate-500 uppercase font-bold">Mins</p>
+
+          {/* Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden border border-emerald-500/5">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercentage}%` }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+              />
+            </div>
+            <p className="text-[9px] text-slate-500 uppercase font-black tracking-tighter text-right">
+              {Math.round(progressPercentage)}% Journey Complete
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
-
+};
   const CommunityButton = () => (
     <a 
       href="https://chat.whatsapp.com/LMWf8gHJtn8HL6uX7MPovE" 
