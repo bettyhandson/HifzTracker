@@ -1,7 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase'; // 🚀 Ensure your supabase client is imported
+import { supabase } from '@/lib/supabase';
+
+// 🚀 Helper to convert VAPID string to the format the browser requires
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export const useNotifications = (userId: string) => {
   const [isSupported, setIsSupported] = useState(false);
@@ -19,6 +35,7 @@ export const useNotifications = (userId: string) => {
 
   const registerServiceWorker = async () => {
     try {
+      // Ensure sw.js is in your /public folder
       const registration = await navigator.serviceWorker.register('/sw.js');
       return registration;
     } catch (err) {
@@ -26,17 +43,22 @@ export const useNotifications = (userId: string) => {
     }
   };
 
-  // 🚀 NEW: Function to save the push address to your database
   const subscribeUser = async () => {
     try {
       const registration = await navigator.serviceWorker.ready;
       
-      // VAPID keys identify your server to the browser's push service
+      // 🚀 IMPORTANT: Convert the public VAPID key from your .env
+      const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC;
+      if (!VAPID_PUBLIC_KEY) throw new Error("VAPID Public Key missing in env");
+
+      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC
+        applicationServerKey: applicationServerKey
       });
 
+      // Save to Supabase
       if (userId && userId !== 'guest') {
         const { error } = await supabase
           .from('profiles')
@@ -45,32 +67,24 @@ export const useNotifications = (userId: string) => {
 
         if (error) throw error;
       } else {
-        // For guests, save locally so we can still trigger local reminders
         localStorage.setItem('push_subscription', JSON.stringify(subscription));
       }
+      
+      console.log('Successfully subscribed to Hifz reminders');
     } catch (error) {
       console.error('Failed to subscribe user to push:', error);
     }
   };
 
   const requestPermission = async () => {
-    if (!('Notification' in window)) {
-      alert("This browser does not support notifications");
-      return;
-    }
-
-    if (Notification.permission === 'denied') {
-      alert("Notifications are blocked. Please allow them in your browser settings to receive daily reminders.");
-      return;
-    }
+    if (!('Notification' in window)) return;
 
     try {
       const permission = await Notification.requestPermission();
       setPermissionStatus(permission);
       
       if (permission === 'granted') {
-        await subscribeUser(); // 🚀 Automatically subscribe once granted
-        alert("Alhamdulillah! Daily reminders are now active.");
+        await subscribeUser();
       }
     } catch (error) {
       console.error('Error requesting permission:', error);

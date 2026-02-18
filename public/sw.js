@@ -5,8 +5,19 @@ self.addEventListener('install', () => {
 
 // 🚀 COMBINED & UPDATED: Handle Remote Push Notifications (Android & iOS 16.4+)
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  
+  // 🛠️ FIX: Robust parsing to ensure data is captured even if formatted oddly
+  let data = {};
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (e) {
+    console.warn("Push event data was not JSON, using text or defaults:", e);
+    data = { body: event.data ? event.data.text() : "" };
+  }
+
+  console.log('[Service Worker] Push Received:', data);
+
   const options = {
     body: data.body || "It's time for your daily Hifz session!",
     icon: '/favicon.ico',
