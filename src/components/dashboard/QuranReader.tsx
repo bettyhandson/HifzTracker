@@ -92,6 +92,7 @@ export default function QuranReader({ userId }: { userId: string }) {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col z-0">
+      {/* Header section */}
       <div className="flex-none p-4 border-b border-white/5 bg-[#0a0a0a]/95 backdrop-blur-xl z-50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')} className="text-emerald-500 bg-emerald-500/10 rounded-xl h-10 w-10 border border-emerald-500/20">
@@ -133,9 +134,15 @@ export default function QuranReader({ userId }: { userId: string }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto touch-auto px-4 py-6 scroll-smooth">
+      {/* Main Reading Area - overscrollBehaviorY: 'contain' prevents the browser pull-to-refresh */}
+      <div 
+        className="flex-1 overflow-y-auto touch-auto px-4 py-6 scroll-smooth"
+        style={{ overscrollBehaviorY: 'contain' }}
+      >
         {loading ? (
-          <div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div></div>
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div>
+          </div>
         ) : (
           <div className="space-y-6 pb-64 max-w-2xl mx-auto">
             {ayahs.map((ayah, index) => (
