@@ -64,16 +64,7 @@ export default function Footer() {
           <p className="text-xs text-slate-500 flex items-center gap-1">
             &copy; {currentYear} HifzTracker. Built with <Heart className="h-3 w-3 text-emerald-500 fill-emerald-500" /> for the Ummah.
           </p>
-          
           <div className="flex items-center gap-2">
-            <p className="text-xs text-slate-500">Crafted by</p>
-            <Link 
-              href="https://geministudio.agency" 
-              target="_blank"
-              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 transition-all hover:border-emerald-500/50"
-            >
-              Geministudio Agency
-            </Link>
           </div>
         </div>
       </div>
