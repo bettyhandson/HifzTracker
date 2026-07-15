@@ -48,10 +48,10 @@ export default function Hero() {
           </div>
 
           {/* 3. The Countdown */}
-          <div className="w-full mb-12 scale-90 sm:scale-100 transition-transform">
+          {/* <div className="w-full mb-12 scale-90 sm:scale-100 transition-transform">
              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mb-6">Maximize Every Moment</h2>
              <RamadanCountdown />
-          </div>
+          </div> */}
 
           {/* 4. Responsive Typography */}
           <h1 className="max-w-4xl text-5xl font-black tracking-tight text-white sm:text-7xl lg:text-8xl leading-[1.1]">

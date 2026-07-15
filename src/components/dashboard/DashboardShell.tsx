@@ -27,93 +27,93 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const router = useRouter(); 
   const [isOpen, setIsOpen] = useState(false);
 
-  // --- Ramadan Countdown Logic ---
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0 });
+//   // --- Ramadan Countdown Logic ---
+//   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0 });
   
-  useEffect(() => {
-    const target = new Date('2026-02-18T00:00:00').getTime();
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = target - now;
-      if (distance < 0) {
-        clearInterval(interval);
-        return;
-      }
-      setTimeLeft({
-        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        mins: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+//   useEffect(() => {
+//     const target = new Date('2026-02-18T00:00:00').getTime();
+//     const interval = setInterval(() => {
+//       const now = new Date().getTime();
+//       const distance = target - now;
+//       if (distance < 0) {
+//         clearInterval(interval);
+//         return;
+//       }
+//       setTimeLeft({
+//         days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+//         hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+//         mins: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+//       });
+//     }, 1000);
+//     return () => clearInterval(interval);
+//   }, []);
 
-  // 🚀 Logic to prevent global pull-to-refresh from triggering inside sidebars
-  const preventRefresh = (e: React.TouchEvent) => {
-    e.stopPropagation();
-  };
+//   // 🚀 Logic to prevent global pull-to-refresh from triggering inside sidebars
+//   const preventRefresh = (e: React.TouchEvent) => {
+//     e.stopPropagation();
+//   };
 
-const CountdownWidget = () => {
-  const [ramadanDay, setRamadanDay] = useState(1);
-  const RAMADAN_START_2026 = new Date('2026-02-18T00:00:00');
+// const CountdownWidget = () => {
+//   const [ramadanDay, setRamadanDay] = useState(1);
+//   const RAMADAN_START_2026 = new Date('2026-02-18T00:00:00');
 
-  useEffect(() => {
-    const calculateDay = () => {
-      const now = new Date();
-      const diffInMs = now.getTime() - RAMADAN_START_2026.getTime();
-      const day = Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
-      setRamadanDay(Math.min(Math.max(day, 1), 30));
-    };
+//   useEffect(() => {
+//     const calculateDay = () => {
+//       const now = new Date();
+//       const diffInMs = now.getTime() - RAMADAN_START_2026.getTime();
+//       const day = Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
+//       setRamadanDay(Math.min(Math.max(day, 1), 30));
+//     };
 
-    calculateDay();
-    const timer = setInterval(calculateDay, 3600000); // Check every hour
-    return () => clearInterval(timer);
-  }, []);
+//     calculateDay();
+//     const timer = setInterval(calculateDay, 3600000); // Check every hour
+//     return () => clearInterval(timer);
+//   }, []);
 
-  const progressPercentage = (ramadanDay / 30) * 100;
+//   const progressPercentage = (ramadanDay / 30) * 100;
 
-  return (
-    <div className="mt-auto px-2 py-4">
-      <div className="bg-gradient-to-br from-emerald-500/15 to-slate-900/40 border border-emerald-500/30 rounded-2xl p-4 backdrop-blur-md shadow-lg shadow-emerald-500/5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400">
-              Ramadan Kareem
-            </span>
-          </div>
-          <span className="text-[10px] font-bold text-emerald-500/60 uppercase">
-            Day {ramadanDay}
-          </span>
-        </div>
+//   return (
+//     <div className="mt-auto px-2 py-4">
+//       <div className="bg-gradient-to-br from-emerald-500/15 to-slate-900/40 border border-emerald-500/30 rounded-2xl p-4 backdrop-blur-md shadow-lg shadow-emerald-500/5">
+//         <div className="flex items-center justify-between mb-3">
+//           <div className="flex items-center gap-2">
+//             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+//             <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-400">
+//               Ramadan Kareem
+//             </span>
+//           </div>
+//           <span className="text-[10px] font-bold text-emerald-500/60 uppercase">
+//             Day {ramadanDay}
+//           </span>
+//         </div>
 
-        <div className="space-y-3">
-          <div className="flex items-end justify-between">
-            <h3 className="text-2xl font-black text-white tracking-tight">
-              Day {ramadanDay} <span className="text-xs text-slate-500 font-bold">/ 30</span>
-            </h3>
-            <Sparkles className="h-4 w-4 text-emerald-400 animate-bounce" />
-          </div>
+//         <div className="space-y-3">
+//           <div className="flex items-end justify-between">
+//             <h3 className="text-2xl font-black text-white tracking-tight">
+//               Day {ramadanDay} <span className="text-xs text-slate-500 font-bold">/ 30</span>
+//             </h3>
+//             <Sparkles className="h-4 w-4 text-emerald-400 animate-bounce" />
+//           </div>
 
-          {/* Progress Bar */}
-          <div className="space-y-1.5">
-            <div className="h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden border border-emerald-500/5">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercentage}%` }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-              />
-            </div>
-            <p className="text-[9px] text-slate-500 uppercase font-black tracking-tighter text-right">
-              {Math.round(progressPercentage)}% Journey Complete
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+//           {/* Progress Bar */}
+//           <div className="space-y-1.5">
+//             <div className="h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden border border-emerald-500/5">
+//               <motion.div 
+//                 initial={{ width: 0 }}
+//                 animate={{ width: `${progressPercentage}%` }}
+//                 transition={{ duration: 1.5, ease: "easeOut" }}
+//                 className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+//               />
+//             </div>
+//             <p className="text-[9px] text-slate-500 uppercase font-black tracking-tighter text-right">
+//               {Math.round(progressPercentage)}% Journey Complete
+//             </p>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
   const CommunityButton = () => (
     <a 
       href="https://chat.whatsapp.com/LMWf8gHJtn8HL6uX7MPovE" 
@@ -158,8 +158,8 @@ const CountdownWidget = () => {
     <div className="flex min-h-screen bg-slate-950 text-white">
       {/* Desktop Sidebar */}
       <aside 
-        onTouchStart={preventRefresh}
-        onTouchMove={preventRefresh}
+        // onTouchStart={preventRefresh}
+        // onTouchMove={preventRefresh}
         style={{ overscrollBehaviorY: 'contain' }}
         className="hidden md:flex w-64 flex-col border-r border-emerald-500/20 bg-slate-900/50 backdrop-blur sticky top-0 h-screen overflow-hidden"
       >
@@ -178,7 +178,7 @@ const CountdownWidget = () => {
 
         <div className="p-6 border-t border-emerald-500/10 mt-auto bg-slate-900/40">
           <CommunityButton />
-          <CountdownWidget />
+          {/* <CountdownWidget /> */}
           <Button 
             variant="ghost" 
             className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all mt-2"
@@ -205,8 +205,8 @@ const CountdownWidget = () => {
             </SheetTrigger>
             <SheetContent 
               side="left" 
-              onTouchStart={preventRefresh}
-              onTouchMove={preventRefresh}
+              // onTouchStart={preventRefresh}
+              // onTouchMove={preventRefresh}
               style={{ overscrollBehaviorY: 'contain' }}
               className="bg-slate-900 border-emerald-500/20 text-white p-0 flex flex-col h-full overflow-hidden"
             >
@@ -240,7 +240,7 @@ const CountdownWidget = () => {
                    <CommunityButton />
                 </div>
                 <div className="px-4">
-                  <CountdownWidget />
+                  {/* <CountdownWidget /> */}
                 </div>
                 <div className="p-6 pt-0">
                   <Button 
