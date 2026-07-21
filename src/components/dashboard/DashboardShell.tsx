@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 const menuItems = [
   { name: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
   { name: 'My Quran', icon: BookCheckIcon, href: '/dashboard/recite' },
+  { name: 'Rewards', icon: Sparkles, href: '/dashboard/rewards' }, 
   { name:  'Adhkar', icon: BookAlert, href: '/dashboard/adhkar' },
   { name: 'Hifz Logs', icon: HistoryIcon, href: '/dashboard/logs' },
   { name: "Muraja'ah Hub", icon: BrainCircuit, href: '/dashboard/retention'},

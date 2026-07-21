@@ -7,11 +7,13 @@ import { useAudio } from '@/context/AudioContext';
 import { Play, Pause, Repeat1, Gauge, ChevronDown, BookOpen, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
+import { useReadingTracker } from '@/hooks/useReadingTracker';
 
 export default function QuranReader({ userId }: { userId: string }) {
   const router = useRouter();
   const { isPlaying, playAyah, activeAyahIndex, playbackRate, setRate, repeatCount, setRepeatCount, toggleAudio } = useAudio();
-  
+  // Update this line in QuranReader.tsx
+  const { getSessionTime, resetTimer, isSubmitting } = useReadingTracker();
   const [surahs, setSurahs] = useState<any[]>([]);
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
   const [ayahs, setAyahs] = useState<any[]>([]);
@@ -20,43 +22,73 @@ export default function QuranReader({ userId }: { userId: string }) {
   
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const logProgress = async () => {
-    const surahName = surahs.find(s => s.number === selectedSurah)?.englishName || `Surah ${selectedSurah}`;
+const logProgress = async () => {
+  if (!userId || userId === 'guest' || ayahs.length === 0) return;
+
+  const totalAyahs = ayahs.length;
+  const timeSpent = getSessionTime(); 
+  const MIN_SECONDS = totalAyahs * 5; 
+  const potentialPoints = totalAyahs * 2;
+  const DAILY_CAP = 72;
+
+  // 1. ANTI-CHEAT: BLOCK IF TIME IS TOO SHORT
+  if (timeSpent < MIN_SECONDS) {
+    toast.error(`Please spend at least ${MIN_SECONDS} seconds reading.`);
+    return;
+  }
+
+  try {
+    // 2. Fetch today's points to enforce the 72-point cap
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayLogs } = await supabase
+      .from('progress_logs')
+      .select('points_earned')
+      .eq('user_id', userId)
+      .gte('created_at', today);
+
+    const pointsAlreadyEarned = todayLogs?.reduce((sum, log) => sum + (log.points_earned || 0), 0) || 0;
+
+    // 3. ENFORCE CAP
+    if (pointsAlreadyEarned >= DAILY_CAP) {
+      toast.info("Daily point cap reached come back tommorow to earn more points.");
+      return;
+    }
+
+    // 4. Calculate points (Cap at remainder if necessary)
+    const pointsToAward = Math.min(potentialPoints, DAILY_CAP - pointsAlreadyEarned);
+
+    // 5. Insert into progress_logs
     const logData = {
-      user_id: userId, 
+      user_id: userId,
       surah_number: selectedSurah,
+      surah_name: surahs.find(s => s.number === selectedSurah)?.englishName,
       ayah_start: 1,
-      ayah_end: ayahs.length,
+      ayah_end: totalAyahs,
+    
+      points_earned: pointsToAward,
+      seconds_spent: timeSpent
     };
 
-    if (userId && userId !== 'guest') {
-      const { error } = await supabase.from('progress_logs').insert([logData]);
-      if (error) {
-        console.error("Supabase Error:", error.message);
-        toast.error(`Error: ${error.message}`);
-      } else {
-        toast.success(`Progress logged: ${surahName}`);
-      }
-    } else {
-      const localLogs = JSON.parse(localStorage.getItem('hifz_progress_logs') || '[]');
-      localLogs.push({ ...logData, created_at: new Date().toISOString() });
-      localStorage.setItem('hifz_progress_logs', JSON.stringify(localLogs));
-      toast.success(`${surahName} saved locally!`);
-    }
-  };
+    const { error } = await supabase.from('progress_logs').insert([logData]);
+    if (error) throw error;
 
+    // 6. Increment profile balance
+    await supabase.rpc('increment_points', { p_user_id: userId, p_points: pointsToAward });
+
+    toast.success(`Progress logged! Earned ${pointsToAward} points.`);
+    resetTimer(); 
+  } catch (err: any) {
+    console.error("Supabase Error:", err);
+    toast.error(`Error: ${err.message}`);
+  }
+};
+  // ... [Keep your existing useEffects for fetchProfile, fetch Surahs, fetch Ayahs, and scroll] ...
+  
   useEffect(() => {
     const fetchProfile = async () => {
       if (!userId || userId === 'guest') return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('preferred_reciter')
-        .eq('id', userId)
-        .single();
-      
-      if (data?.preferred_reciter) {
-        setPreferredReciter(data.preferred_reciter);
-      }
+      const { data } = await supabase.from('profiles').select('preferred_reciter').eq('id', userId).single();
+      if (data?.preferred_reciter) setPreferredReciter(data.preferred_reciter);
     };
     fetchProfile();
   }, [userId]);
@@ -67,6 +99,7 @@ export default function QuranReader({ userId }: { userId: string }) {
 
   useEffect(() => {
     setLoading(true);
+    resetTimer(); 
     fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}/editions/quran-uthmani,en.sahih`)
       .then(res => res.json())
       .then(data => {
@@ -79,7 +112,7 @@ export default function QuranReader({ userId }: { userId: string }) {
         setAyahs(combined);
         setLoading(false);
       });
-  }, [selectedSurah]);
+  }, [selectedSurah, resetTimer]);
 
   useEffect(() => {
     if (activeAyahIndex !== null) {
@@ -91,14 +124,20 @@ export default function QuranReader({ userId }: { userId: string }) {
   }, [activeAyahIndex, isPlaying]);
 
   return (
+    // ... [Your existing return JSX is perfectly fine] ...
     <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col z-0">
-      {/* Header section */}
       <div className="flex-none p-4 border-b border-white/5 bg-[#0a0a0a]/95 backdrop-blur-xl z-50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')} className="text-emerald-500 bg-emerald-500/10 rounded-xl h-10 w-10 border border-emerald-500/20">
             <BookOpen className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={logProgress} className="text-amber-500 bg-amber-500/10 rounded-xl h-10 w-10 border border-amber-500/20">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={logProgress} 
+            disabled={isSubmitting} 
+            className="text-amber-500 bg-amber-500/10 rounded-xl h-10 w-10 border border-amber-500/20 disabled:opacity-50"
+          >
             <ClipboardList className="h-5 w-5" />
           </Button>
           <div className="relative">
@@ -112,7 +151,7 @@ export default function QuranReader({ userId }: { userId: string }) {
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500 pointer-events-none" />
           </div>
         </div>
-
+        {/* ... audio controls ... */}
         <div className="flex items-center gap-1">
           <Button onClick={() => isPlaying ? toggleAudio() : playAyah(activeAyahIndex ?? 0, ayahs, preferredReciter)} variant="ghost" size="icon" className="text-emerald-500 bg-emerald-500/10 rounded-full h-10 w-10 mr-1">
             {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
@@ -133,33 +172,14 @@ export default function QuranReader({ userId }: { userId: string }) {
           </div>
         </div>
       </div>
-
-      {/* Main Reading Area - overscrollBehaviorY: 'contain' prevents the browser pull-to-refresh */}
-      <div 
-        className="flex-1 overflow-y-auto touch-auto px-4 py-6 scroll-smooth"
-        style={{ overscrollBehaviorY: 'contain' }}
-      >
+      <div className="flex-1 overflow-y-auto touch-auto px-4 py-6 scroll-smooth" style={{ overscrollBehaviorY: 'contain' }}>
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div>
-          </div>
+          <div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div></div>
         ) : (
           <div className="space-y-6 pb-64 max-w-2xl mx-auto">
             {ayahs.map((ayah, index) => (
-              <div 
-                key={ayah.number}
-                ref={el => { ayahRefs.current[index] = el; }}
-                onClick={() => playAyah(index, ayahs, preferredReciter)}
-                className={`p-6 rounded-[1.8rem] transition-all cursor-pointer ${
-                  activeAyahIndex === index ? 'bg-emerald-500/15 ring-2 ring-emerald-500/30 shadow-xl scale-[1.02]' : 'bg-white/[0.03]'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-4">
-                   <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-1 rounded-full">{ayah.numberInSurah}</span>
-                   <p className={`text-3xl text-right font-arabic leading-relaxed ${activeAyahIndex === index ? 'text-emerald-400 font-bold' : 'text-white'}`} dir="rtl">
-                    {ayah.text}
-                  </p>
-                </div>
+              <div key={ayah.number} ref={el => { ayahRefs.current[index] = el; }} onClick={() => playAyah(index, ayahs, preferredReciter)} className={`p-6 rounded-[1.8rem] transition-all cursor-pointer ${activeAyahIndex === index ? 'bg-emerald-500/15 ring-2 ring-emerald-500/30' : 'bg-white/[0.03]'}`}>
+                <p className="text-3xl text-right font-arabic leading-relaxed" dir="rtl">{ayah.text}</p>
                 <p className="text-sm text-slate-400 leading-relaxed italic">{ayah.translation}</p>
               </div>
             ))}
